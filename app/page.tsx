@@ -560,7 +560,7 @@ function extractMultipleChoiceAnswerFromBackHtml(backHtml: string): string | nul
   if (!firstLine) return null;
 
   const beforeSep = firstLine
-    .split(/\s*(?:•|\||;|,|\/|·)\s*/u)[0]
+    .split(/\s*(?:•|\||;|\/|·)\s*/u)[0]
     ?.trim();
 
   const picked = String(beforeSep ?? firstLine).replace(/\s+/gu, " ").trim();
@@ -582,7 +582,7 @@ function extractReverseChoiceFromFrontHtml(frontHtml: string): string | null {
   if (!firstLine) return null;
 
   const beforeSep = firstLine
-    .split(/\s*(?:•|\||;|,|\/|·)\s*/u)[0]
+    .split(/\s*(?:•|\||;|\/|·)\s*/u)[0]
     ?.trim();
 
   const picked = String(beforeSep ?? firstLine).replace(/\s+/gu, " ").trim();
