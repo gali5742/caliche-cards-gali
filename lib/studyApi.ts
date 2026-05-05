@@ -46,6 +46,9 @@ export type DeckOverview = {
   newShown: number;
   reviewShown: number;
 
+  // Number of distinct calendar days (local timezone) with at least one review.
+  daysStudied: number;
+
   config: Pick<DeckConfig, "newPerDay" | "reviewsPerDay" | "cardInfoOpenByDefault" | "answerStyles" | "writeLanguage">;
 };
 
@@ -459,7 +462,7 @@ export async function getDeckOverview(ref: DeckRef): Promise<DeckOverview> {
   const db = getStudyDb();
   const now = Date.now();
 
-  const [cfg, today, cardsInDeck, statesInDeck] = await Promise.all([
+  const [cfg, today, cardsInDeck, statesInDeck, reviewLogTs] = await Promise.all([
     getDeckConfig(ref),
     getTodayCounts(ref, now),
     db.cards.where("[libraryId+deckId]").equals([ref.libraryId, ref.deckId]).toArray(),
@@ -472,6 +475,15 @@ export async function getDeckOverview(ref: DeckRef): Promise<DeckOverview> {
         true
       )
       .toArray(),
+    db.reviewLogs
+      .where("[libraryId+deckId+ts]")
+      .between(
+        [ref.libraryId, ref.deckId, 0],
+        [ref.libraryId, ref.deckId, Number.MAX_SAFE_INTEGER],
+        true,
+        true
+      )
+      .keys() as unknown as Promise<[string, number, number][]>,
   ]);
 
   const totalNoteIds = new Set<number>();
@@ -520,6 +532,18 @@ export async function getDeckOverview(ref: DeckRef): Promise<DeckOverview> {
   const newShown = Math.min(newAvailable, newLeftToday);
   const reviewShown = Math.min(reviewDue, reviewsLeftToday);
 
+  // Count distinct calendar days (local timezone) that have at least one review log.
+  const distinctDays = new Set<number>();
+  for (const key of reviewLogTs) {
+    const ts = key[2];
+    if (typeof ts === "number" && ts > 0) {
+      const d = new Date(ts);
+      d.setHours(0, 0, 0, 0);
+      distinctDays.add(d.getTime());
+    }
+  }
+  const daysStudied = distinctDays.size;
+
   const nextAvailableTs = (() => {
     const candidates: number[] = [];
 
@@ -560,6 +584,7 @@ export async function getDeckOverview(ref: DeckRef): Promise<DeckOverview> {
     nextAvailableTs,
     newShown,
     reviewShown,
+    daysStudied,
     config: {
       newPerDay: cfg.newPerDay,
       reviewsPerDay: cfg.reviewsPerDay,

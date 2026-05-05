@@ -4164,12 +4164,14 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-foreground/15 bg-surface-strong/70">
-                  <div className="hidden sm:grid grid-cols-[1fr_80px_90px_110px_130px_48px] gap-2 border-b border-foreground/15 px-4 py-3 text-xs font-medium text-foreground/70">
+                  <div className="hidden sm:grid grid-cols-[1fr_80px_90px_110px_130px_80px_80px_48px] gap-2 border-b border-foreground/15 px-4 py-3 text-xs font-medium text-foreground/70">
                     <div>Deck</div>
                     <div className="text-center">New</div>
                     <div className="text-center">Learning</div>
                     <div className="text-center">Review</div>
                     <div className="text-center">Total</div>
+                    <div className="text-center">Days left</div>
+                    <div className="text-center">Days done</div>
                     <div />
                   </div>
 
@@ -4202,7 +4204,7 @@ export default function Home() {
                         return (
                           <div
                             key={`${lib.id}:${d.id}`}
-                            className={`grid grid-cols-[1fr_48px] sm:grid-cols-[1fr_80px_90px_110px_130px_48px] items-center gap-2 rounded-xl px-2 py-2 ${
+                            className={`grid grid-cols-[1fr_48px] sm:grid-cols-[1fr_80px_90px_110px_130px_80px_80px_48px] items-center gap-2 rounded-xl px-2 py-2 ${
                               isSelected
                                 ? "bg-foreground/5"
                                 : "hover:bg-foreground/5"
@@ -4273,6 +4275,20 @@ export default function Home() {
                               {overview
                                 ? `${overview.reviewed}/${overview.total}`
                                 : "—"}
+                            </div>
+                            <div className="hidden sm:block text-center text-sm text-foreground/70">
+                              {overview
+                                ? (() => {
+                                    const unseen = overview.total - overview.reviewed;
+                                    if (unseen <= 0) return "✓";
+                                    const rate = overview.config.newPerDay;
+                                    if (!rate) return "—";
+                                    return String(Math.ceil(unseen / rate));
+                                  })()
+                                : "—"}
+                            </div>
+                            <div className="hidden sm:block text-center text-sm text-foreground/70">
+                              {overview ? overview.daysStudied || "—" : "—"}
                             </div>
 
                             <div
