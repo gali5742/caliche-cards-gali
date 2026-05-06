@@ -3883,20 +3883,22 @@ export default function Home() {
       matchPoolKey === `${reviewRef?.libraryId}:${reviewRef?.deckId}` &&
       matchPool.filter((p) => p.cardId !== current?.card.cardId).length >= 1;
 
-    const available: ReviewAnswerStyle[] = [];
-    for (const s of enabledStyles) {
-      if (s === "normal") available.push("normal");
-      else if (s === "write" && canWrite) available.push("write");
-      else if (s === "multiple-choice" && canMc) available.push("multiple-choice");
-      else if (s === "reverse" && canReverse) available.push("reverse");
-      else if (s === "match" && canMatch) available.push("match");
-    }
+    // Build a weighted pool where every enabled style always occupies its fair
+    // share of slots. Styles that can't run for this card collapse to "normal"
+    // so that match never gets a higher-than-intended share just because
+    // write/mc/reverse lack distractors for this specific card.
+    const weightedPool: ReviewAnswerStyle[] = enabledStyles.map((s) => {
+      if (s === "write") return canWrite ? "write" : "normal";
+      if (s === "multiple-choice") return canMc ? "multiple-choice" : "normal";
+      if (s === "reverse") return canReverse ? "reverse" : "normal";
+      if (s === "match") return canMatch ? "match" : "normal";
+      return "normal";
+    });
 
-    // Fallback: never block review just because a style can't run.
-    if (available.length === 0) available.push("normal");
+    if (weightedPool.length === 0) weightedPool.push("normal");
 
-    const idx = Math.min(available.length - 1, Math.floor(rand01() * available.length));
-    const chosen = available[idx] ?? "normal";
+    const idx = Math.min(weightedPool.length - 1, Math.floor(rand01() * weightedPool.length));
+    const chosen = weightedPool[idx] ?? "normal";
 
     chosenAnswerStyleForCardIdRef.current = { cardId: currentId, style: chosen };
     setReviewAnswerStyle(chosen);
@@ -5047,6 +5049,7 @@ export default function Home() {
                                     <div key={`slot-${slot}`} className="flex flex-col gap-1.5">
                                       <div className="rounded-xl bg-foreground/8 px-2 py-2.5 text-center text-sm font-semibold leading-tight">
                                         {item.front}
+                                        {item.soundFile ? <span className="ml-1 text-foreground/40 text-xs">♪</span> : null}
                                       </div>
                                       <button
                                         type="button"
@@ -5103,15 +5106,19 @@ export default function Home() {
                                         );
                                         return;
                                       }
-                                      // Play audio if available
-                                      if (item.soundFile) {
-                                        void tryPlayAudioFilename(activeNamespace, item.soundFile).catch(() => {});
+                                      // Play the audio of the WORD SLOT being filled, not the answer chip
+                                      const firstEmpty = matchAssigned.findIndex((v) => v === null);
+                                      if (firstEmpty !== -1) {
+                                        const wordAtSlot = matchItems[firstEmpty];
+                                        if (wordAtSlot?.soundFile) {
+                                          void tryPlayAudioFilename(activeNamespace, wordAtSlot.soundFile).catch(() => {});
+                                        }
                                       }
                                       // Assign to first empty slot
                                       setMatchAssigned((prev) => {
                                         const next = [...prev];
-                                        const firstEmpty = next.findIndex((v) => v === null);
-                                        if (firstEmpty !== -1) next[firstEmpty] = bottomIdx;
+                                        const emptyIdx = next.findIndex((v) => v === null);
+                                        if (emptyIdx !== -1) next[emptyIdx] = bottomIdx;
                                         return next;
                                       });
                                     }}
@@ -5122,7 +5129,6 @@ export default function Home() {
                                     }`}
                                   >
                                     {item.back}
-                                    {item.soundFile ? <span className="ml-1 text-foreground/40">♪</span> : null}
                                   </button>
                                 );
                               })}
