@@ -58,6 +58,7 @@ function sanitizeAnswerStyles(raw: unknown): ReviewAnswerStyle[] {
     "write",
     "multiple-choice",
     "reverse",
+    "match",
   ];
   if (!Array.isArray(raw)) return allowed;
   const picked = raw.filter((x): x is ReviewAnswerStyle => allowed.includes(x as ReviewAnswerStyle));

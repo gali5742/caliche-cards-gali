@@ -6,7 +6,7 @@ export const DEFAULT_DECK_CONFIG: DeckConfig = {
   newPerDay: 10,
   reviewsPerDay: 200,
   cardInfoOpenByDefault: false,
-  answerStyles: ["normal", "write", "multiple-choice", "reverse"],
+  answerStyles: ["normal", "write", "multiple-choice", "reverse", "match"],
   writeLanguage: "en",
   learnStepsMs: [10 * 60 * 1000, 1 * DAY_MS],
   relearnStepsMs: [10 * 60 * 1000],

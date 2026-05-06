@@ -41,6 +41,8 @@ import { DEFAULT_DECK_CONFIG, scheduleAnswer } from "../lib/scheduler";
 
 type Mode = "import" | "review";
 
+type MatchItem = { cardId: number; front: string; back: string; soundFile?: string };
+
 const LOCAL_ONLY_MODE = false;
 
 type LocalReviewLogRow = Omit<ReviewLogEntity, "syncKey"> & { syncKey?: string };
@@ -1182,6 +1184,18 @@ export default function Home() {
   const [deckOverviews, setDeckOverviews] = useState<Record<string, DeckOverview>>({});
   const [nowTs, setNowTs] = useState(() => Date.now());
   const [reviewDeckConfig, setReviewDeckConfig] = useState<DeckConfig | null>(null);
+
+  // ── Match answer-style state ─────────────────────────────────────────────
+  const [matchPool, setMatchPool] = useState<MatchItem[]>([]);
+  const [matchPoolKey, setMatchPoolKey] = useState<string | null>(null);
+  const [matchItems, setMatchItems] = useState<MatchItem[]>([]);
+  const [matchRightOrder, setMatchRightOrder] = useState<number[]>([]);
+  const [matchOutcome, setMatchOutcome] = useState<"correct" | "wrong" | null>(null);
+  // matchAssigned[wordSlot] = bottom-answer-index or null (sequential assignment)
+  const [matchAssigned, setMatchAssigned] = useState<(number | null)[]>([]);
+  const [matchSubmitted, setMatchSubmitted] = useState(false);
+  // matchCardResults[slot] = true if that slot was correctly matched (set on submit)
+  const [matchCardResults, setMatchCardResults] = useState<boolean[]>([]);
 
   // Prevent double autoplay from re-renders; reset when the card appearance changes.
   const lastAutoPlayedCardAppearanceTokenRef = useRef<number | null>(null);
@@ -3447,6 +3461,20 @@ export default function Home() {
         setReverseFrontPoolKey(null);
       }
 
+      if (cfg.answerStyles.includes("match")) {
+        try {
+          const pool = await preloadMatchPool(ref);
+          setMatchPool(pool);
+          setMatchPoolKey(`${ref.libraryId}:${ref.deckId}`);
+        } catch {
+          setMatchPool([]);
+          setMatchPoolKey(null);
+        }
+      } else {
+        setMatchPool([]);
+        setMatchPoolKey(null);
+      }
+
       setReviewRef(ref);
       setMode("review");
 
@@ -3480,9 +3508,23 @@ export default function Home() {
     if (!reviewRef || !current) return;
     setReviewBusy(true);
     try {
-      const answeredId = current.card.cardId;
-      await answerCard(reviewRef, answeredId, result);
-      await loadNext(reviewRef, answeredId);
+      if (
+        reviewAnswerStyle === "match" &&
+        matchItems.length > 0 &&
+        matchCardResults.length === matchItems.length
+      ) {
+        // Score every card shown in the match game with its individual result.
+        for (let i = 0; i < matchItems.length; i++) {
+          const item = matchItems[i]!;
+          const cardResult: "pass" | "fail" = matchCardResults[i] ? "pass" : "fail";
+          await answerCard(reviewRef, item.cardId, cardResult);
+        }
+        await loadNext(reviewRef, current.card.cardId);
+      } else {
+        const answeredId = current.card.cardId;
+        await answerCard(reviewRef, answeredId, result);
+        await loadNext(reviewRef, answeredId);
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error saving answer";
       setError(msg);
@@ -3770,6 +3812,49 @@ export default function Home() {
     return fronts;
   }
 
+  async function preloadMatchPool(ref: DeckRef): Promise<MatchItem[]> {
+    const db = getStudyDb();
+    const now = Date.now();
+    const states = await db.cardStates
+      .where("[libraryId+deckId+due]")
+      .between([ref.libraryId, ref.deckId, 0], [ref.libraryId, ref.deckId, now], true, true)
+      .filter((s) => s.reps > 0 && !s.suspended && (s.buriedUntil == null || s.buriedUntil <= now))
+      .toArray();
+
+    const cardIds = [...new Set(states.map((s) => s.cardId))].slice(0, 200);
+    if (cardIds.length === 0) return [];
+
+    const cards = await db.cards
+      .where("[libraryId+cardId]")
+      .anyOf(cardIds.map((id) => [ref.libraryId, id]))
+      .toArray();
+
+    const items: MatchItem[] = [];
+    const seenFront = new Set<string>();
+    const seenBack = new Set<string>();
+    for (const c of cards) {
+      const front = htmlToText(c.frontHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
+      const back =
+        extractMultipleChoiceAnswerFromCard({
+          frontHtml: c.frontHtml,
+          backHtml: c.backHtml,
+          fieldsHtml: c.fieldsHtml,
+          fieldNames: c.fieldNames,
+        }) ?? htmlToText(c.backHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
+      if (!front || !back) continue;
+      const fk = normalizeChoiceText(front);
+      const bk = normalizeChoiceText(back);
+      if (!fk || !bk || seenFront.has(fk) || seenBack.has(bk)) continue;
+      seenFront.add(fk);
+      seenBack.add(bk);
+      const soundMatch = /\[sound:([^\]]+)\]/i.exec(c.backHtml) ?? /\[sound:([^\]]+)\]/i.exec(c.frontHtml);
+      const soundFile = soundMatch?.[1]?.trim() ?? undefined;
+      items.push({ cardId: c.cardId, front, back, soundFile });
+      if (items.length >= 160) break;
+    }
+    return items;
+  }
+
   useEffect(() => {
     if (mode !== "review") return;
     if (currentId == null) return;
@@ -3787,11 +3872,16 @@ export default function Home() {
     const enabledStyles: ReviewAnswerStyle[] =
       reviewDeckConfig?.answerStyles?.length
         ? reviewDeckConfig.answerStyles
-        : ["normal", "write", "multiple-choice", "reverse"];
+        : ["normal", "write", "multiple-choice", "reverse", "match"];
 
     const canWrite = writeExpectedChars.length > 0;
     const canMc = Boolean(mcCorrectAnswer) && mcDecoysForCard.length > 0;
     const canReverse = Boolean(reversePromptHtml) && Boolean(reverseCorrectFront) && reverseDecoysForCard.length > 0;
+    const canMatch =
+      current?.state.state !== "new" &&
+      Boolean(mcCorrectAnswer) &&
+      matchPoolKey === `${reviewRef?.libraryId}:${reviewRef?.deckId}` &&
+      matchPool.filter((p) => p.cardId !== current?.card.cardId).length >= 1;
 
     const available: ReviewAnswerStyle[] = [];
     for (const s of enabledStyles) {
@@ -3799,6 +3889,7 @@ export default function Home() {
       else if (s === "write" && canWrite) available.push("write");
       else if (s === "multiple-choice" && canMc) available.push("multiple-choice");
       else if (s === "reverse" && canReverse) available.push("reverse");
+      else if (s === "match" && canMatch) available.push("match");
     }
 
     // Fallback: never block review just because a style can't run.
@@ -3822,17 +3913,75 @@ export default function Home() {
     reversePromptHtml,
     reverseCorrectFront,
     reverseDecoysForCard.length,
+    current?.state.state,
+    current?.card.cardId,
+    matchPool,
+    matchPoolKey,
+    reviewRef?.libraryId,
+    reviewRef?.deckId,
   ]);
 
   useEffect(() => {
-    // Reset write state when the card changes or the user changes style.
+    // Reset all answer-style state when the card or style changes.
     setWritePicked([]);
     setWriteOutcome(null);
     setMcOutcome(null);
     setMcSelectedIndex(null);
     setReverseOutcome(null);
     setReverseSelectedIndex(null);
+    setMatchItems([]);
+    setMatchRightOrder([]);
+    setMatchOutcome(null);
+    setMatchAssigned([]);
+    setMatchSubmitted(false);
+    setMatchCardResults([]);
   }, [currentId, reviewAnswerStyle]);
+
+  // Build the per-card match game when style is "match".
+  useEffect(() => {
+    if (mode !== "review") return;
+    if (reviewAnswerStyle !== "match") return;
+    if (!current || !mcCorrectAnswer || !reviewRef) return;
+    const wantsKey = `${reviewRef.libraryId}:${reviewRef.deckId}`;
+    if (matchPoolKey !== wantsKey) return;
+
+    const currentFront = htmlToText(current.card.frontHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
+    const currentBack = mcCorrectAnswer;
+    const currentSoundMatch =
+      /\[sound:([^\]]+)\]/i.exec(current.card.backHtml) ??
+      /\[sound:([^\]]+)\]/i.exec(current.card.frontHtml);
+    const currentItem: MatchItem = {
+      cardId: current.card.cardId,
+      front: currentFront,
+      back: currentBack,
+      soundFile: currentSoundMatch?.[1]?.trim() ?? undefined,
+    };
+
+    const seed = `${current.card.cardId}:match`;
+    const currentBackKey = normalizeChoiceText(currentBack);
+    const candidates = seededShuffle(
+      matchPool.filter(
+        (p) => p.cardId !== current.card.cardId && normalizeChoiceText(p.back) !== currentBackKey
+      ),
+      `${seed}:cands`
+    );
+
+    if (candidates.length === 0) return;
+
+    // Pick a random count between 2 and min(10, total available)
+    const maxCount = Math.min(10, 1 + candidates.length);
+    const n = maxCount <= 2 ? 2 : 2 + Math.floor(Math.random() * (maxCount - 1));
+    const distractors = candidates.slice(0, n - 1);
+
+    const items: MatchItem[] = [currentItem, ...distractors];
+    const rightOrder = seededShuffle(items.map((_, i) => i), `${seed}:right`);
+
+    setMatchItems(items);
+    setMatchRightOrder(rightOrder);
+    setMatchAssigned(items.map(() => null));
+    setMatchCardResults(items.map(() => false));
+    setMatchSubmitted(false);
+  }, [mode, reviewAnswerStyle, currentId, current, matchPool, matchPoolKey, reviewRef, mcCorrectAnswer]);
 
   useEffect(() => {
     if (mode !== "review") return;
@@ -4430,6 +4579,7 @@ export default function Home() {
                                         { id: "write" as const, label: "Write" },
                                         { id: "multiple-choice" as const, label: "Multiple-choice" },
                                         { id: "reverse" as const, label: "Reverse" },
+                                        { id: "match" as const, label: "Match" },
                                       ] satisfies Array<{ id: ReviewAnswerStyle; label: string }>
                                     ).map((opt) => {
                                       const currentStyles = (overview?.config.answerStyles ?? [
@@ -4437,6 +4587,7 @@ export default function Home() {
                                         "write",
                                         "multiple-choice",
                                         "reverse",
+                                        "match",
                                       ]) as ReviewAnswerStyle[];
                                       const checked = currentStyles.includes(opt.id);
 
@@ -4759,7 +4910,7 @@ export default function Home() {
                           className="text-center text-xl leading-8"
                         />
                       </div>
-                    ) : (
+                    ) : reviewAnswerStyle === "match" && !showAnswer ? null : (
                       <div className="py-10">
                         <CardFace
                           namespace={activeNamespace}
@@ -4860,6 +5011,154 @@ export default function Home() {
                               </button>
                             ))}
                           </div>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {reviewAnswerStyle === "match" && !showAnswer ? (
+                      <div className="flex flex-col gap-6 pt-6 pb-2">
+                        {matchItems.length < 2 ? (
+                          <div className="text-center text-sm text-foreground/70">
+                            Match is not available for this card.
+                          </div>
+                        ) : (
+                          <>
+                            {/* Word slots — top */}
+                            <div>
+                              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-foreground/40 text-center">
+                                Words
+                              </div>
+                              <div className={`grid gap-3 grid-cols-${matchItems.length}`}>
+                                {matchItems.map((item, slot) => {
+                                  const assignedBottomIdx = matchAssigned[slot] ?? null;
+                                  const assignedItem =
+                                    assignedBottomIdx !== null
+                                      ? matchItems[matchRightOrder[assignedBottomIdx] ?? -1] ?? null
+                                      : null;
+                                  const isCorrect =
+                                    matchSubmitted &&
+                                    assignedBottomIdx !== null &&
+                                    matchRightOrder[assignedBottomIdx] === slot;
+                                  const isWrong =
+                                    matchSubmitted &&
+                                    assignedBottomIdx !== null &&
+                                    matchRightOrder[assignedBottomIdx] !== slot;
+                                  return (
+                                    <div key={`slot-${slot}`} className="flex flex-col gap-1.5">
+                                      <div className="rounded-xl bg-foreground/8 px-2 py-2.5 text-center text-sm font-semibold leading-tight">
+                                        {item.front}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        disabled={matchSubmitted}
+                                        onClick={() => {
+                                          if (matchSubmitted) return;
+                                          if (assignedBottomIdx !== null) {
+                                            setMatchAssigned((prev) => {
+                                              const next = [...prev];
+                                              next[slot] = null;
+                                              return next;
+                                            });
+                                          }
+                                        }}
+                                        className={`min-h-10 rounded-xl border-2 px-2 py-2 text-center text-xs transition-colors ${
+                                          isCorrect
+                                            ? "border-green-500 bg-green-500/10 text-green-600"
+                                            : isWrong
+                                              ? "border-red-500 bg-red-500/10 text-red-500"
+                                              : assignedItem
+                                                ? "border-blue-400/60 bg-blue-400/8 text-foreground hover:bg-red-500/8 hover:border-red-400"
+                                                : "border-dashed border-foreground/20 text-foreground/25"
+                                        }`}
+                                      >
+                                        {assignedItem ? assignedItem.back : "·  ·  ·"}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Answer chips — bottom */}
+                            <div>
+                              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-foreground/40 text-center">
+                                Answers
+                              </div>
+                              <div className="flex flex-wrap gap-2 justify-center">
+                              {matchRightOrder.map((itemIdx, bottomIdx) => {
+                                const item = matchItems[itemIdx];
+                                if (!item) return null;
+                                const isUsed = matchAssigned.includes(bottomIdx);
+                                return (
+                                  <button
+                                    key={`ans-${bottomIdx}-${item.cardId}`}
+                                    type="button"
+                                    disabled={matchSubmitted}
+                                    onClick={() => {
+                                      if (matchSubmitted) return;
+                                      if (isUsed) {
+                                        // unassign from whichever slot has it
+                                        setMatchAssigned((prev) =>
+                                          prev.map((v) => (v === bottomIdx ? null : v))
+                                        );
+                                        return;
+                                      }
+                                      // Play audio if available
+                                      if (item.soundFile) {
+                                        void tryPlayAudioFilename(activeNamespace, item.soundFile).catch(() => {});
+                                      }
+                                      // Assign to first empty slot
+                                      setMatchAssigned((prev) => {
+                                        const next = [...prev];
+                                        const firstEmpty = next.findIndex((v) => v === null);
+                                        if (firstEmpty !== -1) next[firstEmpty] = bottomIdx;
+                                        return next;
+                                      });
+                                    }}
+                                    className={`rounded-2xl border px-4 py-2 text-sm font-medium transition-colors ${
+                                      isUsed
+                                        ? "border-foreground/10 bg-foreground/5 text-foreground/30"
+                                        : "border-foreground/20 bg-background hover:bg-foreground/5 active:bg-foreground/10"
+                                    }`}
+                                  >
+                                    {item.back}
+                                    {item.soundFile ? <span className="ml-1 text-foreground/40">♪</span> : null}
+                                  </button>
+                                );
+                              })}
+                              </div>
+                            </div>
+
+                            {/* Submit */}
+                            {!matchSubmitted ? (
+                              <button
+                                type="button"
+                                disabled={matchAssigned.some((v) => v === null)}
+                                onClick={() => {
+                                  setMatchSubmitted(true);
+                                  const perSlot = matchItems.map((_, slot) => {
+                                    const assigned = matchAssigned[slot];
+                                    if (assigned === null) return false;
+                                    return matchRightOrder[assigned] === slot;
+                                  });
+                                  setMatchCardResults(perSlot);
+                                  setMatchOutcome(perSlot.every(Boolean) ? "correct" : "wrong");
+                                }}
+                                className="caliche-primary-btn h-11 rounded-full px-6 text-sm font-medium disabled:opacity-40 self-center"
+                              >
+                                Submit
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={reviewBusy}
+                                onClick={() => void onAnswer(matchOutcome === "correct" ? "pass" : "fail")}
+                                className="caliche-primary-btn h-11 rounded-full px-6 text-sm font-medium self-center"
+                              >
+                                Continue
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     ) : null}
@@ -4980,6 +5279,7 @@ export default function Home() {
                     (reviewAnswerStyle === "write" && !writeIsAvailable) ||
                     (reviewAnswerStyle === "multiple-choice" && !mcCanRun) ||
                     (reviewAnswerStyle === "reverse" && !reverseCanRun) ||
+                    (reviewAnswerStyle === "match" && matchItems.length < 2) ||
                     (reviewAnswerStyle === "write" && writeOutcome != null) ||
                     (reviewAnswerStyle === "multiple-choice" && mcOutcome != null) ||
                     (reviewAnswerStyle === "reverse" && reverseOutcome != null) ? (
@@ -4989,15 +5289,11 @@ export default function Home() {
                         onClick={() => setShowAnswer(true)}
                         disabled={reviewBusy}
                       >
-                        {reviewAnswerStyle === "write" && writeOutcome != null
+                        {(reviewAnswerStyle === "write" && writeOutcome != null) ||
+                        (reviewAnswerStyle === "multiple-choice" && mcOutcome != null) ||
+                        (reviewAnswerStyle === "reverse" && reverseOutcome != null)
                           ? "Reveal answer"
-                          : reviewAnswerStyle === "multiple-choice" &&
-                              mcOutcome != null
-                            ? "Reveal answer"
-                            : reviewAnswerStyle === "reverse" &&
-                                reverseOutcome != null
-                              ? "Reveal answer"
-                            : "Show answer"}
+                          : "Show answer"}
                       </button>
                     ) : null
                   ) : (
@@ -5008,8 +5304,8 @@ export default function Home() {
                         onClick={() => void onAnswer("fail")}
                         disabled={
                           reviewBusy ||
-                          (reviewAnswerStyle === "multiple-choice" && mcOutcome === "correct")
-                          || (reviewAnswerStyle === "reverse" && reverseOutcome === "correct")
+                          (reviewAnswerStyle === "multiple-choice" && mcOutcome === "correct") ||
+                          (reviewAnswerStyle === "reverse" && reverseOutcome === "correct")
                         }
                       >
                         Fail{nextDueLabels ? ` • ${nextDueLabels.fail}` : ""}
