@@ -3676,8 +3676,34 @@ export default function Home() {
     if (!reversePromptHtml) return [];
 
     const seed = `${currentId}:${normalizeChoiceText(reverseCorrectFront)}`;
-    const shuffledDecoys = seededShuffle(reverseDecoysForCard, `${seed}:decoys`);
-    const pickedDecoys = shuffledDecoys.slice(0, 3);
+
+    // Partition into confusable (share ≥1 word with correct) vs other,
+    // using a seeded shuffle only to distribute ties consistently within each group.
+    const correctWords = new Set(
+      normalizeChoiceText(reverseCorrectFront)
+        .split(/\s+/)
+        .filter((w) => w.length >= 2)
+    );
+    const confusable: string[] = [];
+    const other: string[] = [];
+    for (const d of seededShuffle(reverseDecoysForCard, `${seed}:decoys`)) {
+      const dWords = normalizeChoiceText(d).split(/\s+/);
+      const overlaps = dWords.some((w) => w.length >= 2 && correctWords.has(w));
+      if (overlaps) confusable.push(d);
+      else other.push(d);
+    }
+
+    // Pick randomly from each group every time the card is shown so distractors
+    // vary across reviews. Take up to 3 from confusable first, fill with other.
+    const randShuffle = <T,>(arr: T[]): T[] => {
+      const out = [...arr];
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j]!, out[i]!];
+      }
+      return out;
+    };
+    const pickedDecoys = [...randShuffle(confusable), ...randShuffle(other)].slice(0, 3);
 
     const correctKey = normalizeChoiceText(reverseCorrectFront);
     const uniq: Array<{ label: string; key: string }> = [];
