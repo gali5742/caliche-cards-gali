@@ -5053,8 +5053,9 @@ export default function Home() {
                           <>
                             {/* Word slots — top */}
                             <div>
-                              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-foreground/40 text-center">
-                                Words
+                              <div className="mb-3 flex items-center justify-between px-1 pt-4">
+                                <span className="text-xs font-semibold uppercase tracking-widest text-foreground/40">Words</span>
+                                <span className="rounded-full bg-foreground/8 px-2.5 py-0.5 text-xs font-medium text-foreground/50">{matchItems.length} cards</span>
                               </div>
                               <div className={`grid gap-3 grid-cols-${matchItems.length}`}>
                                 {matchItems.map((item, slot) => {
@@ -5110,8 +5111,26 @@ export default function Home() {
 
                             {/* Answer chips — bottom */}
                             <div>
-                              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-foreground/40 text-center">
-                                Answers
+                              <div className="mb-3 flex items-center justify-between px-1">
+                                <span className="text-xs font-semibold uppercase tracking-widest text-foreground/40">Answers</span>
+                                {/* Single play button: reproduces audio of the NEXT word to answer */}
+                                {matchItems.some((item) => item.soundFile) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const firstEmpty = matchAssigned.findIndex((v) => v === null);
+                                      const idx = firstEmpty !== -1 ? firstEmpty : matchItems.length - 1;
+                                      const word = matchItems[idx];
+                                      if (word?.soundFile) {
+                                        void tryPlayAudioFilename(activeNamespace, word.soundFile).catch(() => {});
+                                      }
+                                    }}
+                                    className="flex h-6 w-6 items-center justify-center rounded-full border border-foreground/20 text-foreground/50 hover:bg-foreground/8 hover:text-foreground/80 transition-colors"
+                                    aria-label="Play current word audio"
+                                  >
+                                    <FaPlay className="h-2.5 w-2.5" />
+                                  </button>
+                                ) : null}
                               </div>
                               <div className="flex flex-wrap gap-2 justify-center">
                               {matchRightOrder.map((itemIdx, bottomIdx) => {
@@ -5126,13 +5145,12 @@ export default function Home() {
                                     onClick={() => {
                                       if (matchSubmitted) return;
                                       if (isUsed) {
-                                        // unassign from whichever slot has it
                                         setMatchAssigned((prev) =>
                                           prev.map((v) => (v === bottomIdx ? null : v))
                                         );
                                         return;
                                       }
-                                      // Play the audio of the WORD SLOT being filled, not the answer chip
+                                      // Play the audio of the WORD SLOT being filled
                                       const firstEmpty = matchAssigned.findIndex((v) => v === null);
                                       if (firstEmpty !== -1) {
                                         const wordAtSlot = matchItems[firstEmpty];
@@ -5140,7 +5158,6 @@ export default function Home() {
                                           void tryPlayAudioFilename(activeNamespace, wordAtSlot.soundFile).catch(() => {});
                                         }
                                       }
-                                      // Assign to first empty slot
                                       setMatchAssigned((prev) => {
                                         const next = [...prev];
                                         const emptyIdx = next.findIndex((v) => v === null);
