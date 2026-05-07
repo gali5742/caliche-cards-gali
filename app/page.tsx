@@ -1174,6 +1174,7 @@ export default function Home() {
   const [reverseOutcome, setReverseOutcome] = useState<"correct" | "wrong" | null>(null);
   const [reverseSelectedIndex, setReverseSelectedIndex] = useState<number | null>(null);
   const [mcAnswerPool, setMcAnswerPool] = useState<string[]>([]);
+  const [mcReviewedPool, setMcReviewedPool] = useState<string[]>([]);
   const [mcAnswerPoolKey, setMcAnswerPoolKey] = useState<string | null>(null);
   const [reverseFrontPool, setReverseFrontPool] = useState<string[]>([]);
   const [reverseFrontPoolKey, setReverseFrontPoolKey] = useState<string | null>(null);
@@ -3434,15 +3435,18 @@ export default function Home() {
       const mcEnabled = cfg.answerStyles.includes("multiple-choice");
       if (mcEnabled) {
         try {
-          const pool = await preloadMcAnswerPool(ref);
-          setMcAnswerPool(pool);
+          const { all, reviewed } = await preloadMcAnswerPool(ref);
+          setMcAnswerPool(all);
+          setMcReviewedPool(reviewed);
           setMcAnswerPoolKey(`${ref.libraryId}:${ref.deckId}`);
         } catch {
           setMcAnswerPool([]);
+          setMcReviewedPool([]);
           setMcAnswerPoolKey(null);
         }
       } else {
         setMcAnswerPool([]);
+        setMcReviewedPool([]);
         setMcAnswerPoolKey(null);
       }
 
@@ -3601,16 +3605,30 @@ export default function Home() {
     if (!mcCorrectAnswer) return [];
 
     const seed = `${currentId}:${normalizeChoiceText(mcCorrectAnswer)}`;
-    const shuffledDecoys = seededShuffle(mcDecoysForCard, `${seed}:decoys`);
-    const pickedDecoys = shuffledDecoys.slice(0, 3);
-
     const correctKey = normalizeChoiceText(mcCorrectAnswer);
+
+    // Partition: reviewed cards (excluding correct) vs rest
+    const reviewedDecoys = seededShuffle(
+      mcReviewedPool.filter((x) => normalizeChoiceText(x) !== correctKey),
+      `${seed}:reviewed`
+    );
+    const reviewedKeys = new Set(reviewedDecoys.map((x) => normalizeChoiceText(x)));
+    const otherDecoys = seededShuffle(
+      mcDecoysForCard.filter((x) => !reviewedKeys.has(normalizeChoiceText(x))),
+      `${seed}:other`
+    );
+
+    // Pick 1–2 randomly from reviewed, fill remaining with others
+    const nReviewed = reviewedDecoys.length === 0 ? 0 : 1 + Math.floor(Math.random() * Math.min(2, reviewedDecoys.length));
+    const pickedReviewed = reviewedDecoys.slice(0, nReviewed);
+    const pickedOther = otherDecoys.slice(0, 3 - pickedReviewed.length);
+    const pickedDecoys = [...pickedReviewed, ...pickedOther];
+
     const uniq: Array<{ label: string; key: string }> = [];
     const seen = new Set<string>();
     const add = (label: string) => {
       const key = normalizeChoiceText(label);
-      if (!key) return;
-      if (seen.has(key)) return;
+      if (!key || seen.has(key)) return;
       seen.add(key);
       uniq.push({ label, key });
     };
@@ -3625,7 +3643,7 @@ export default function Home() {
       label: o.label,
       isCorrect: o.key === correctKey,
     }));
-  }, [currentId, mcCorrectAnswer, mcDecoysForCard]);
+  }, [currentId, mcCorrectAnswer, mcDecoysForCard, mcReviewedPool]);
 
   const answerFieldSections = useMemo(() => {
     if (!current) return [];
@@ -3787,15 +3805,21 @@ export default function Home() {
   const mcCanRun = Boolean(mcCorrectAnswer) && mcDecoysForCard.length > 0;
   const reverseCanRun = Boolean(reversePromptHtml) && Boolean(reverseCorrectFront) && reverseDecoysForCard.length > 0;
 
-  async function preloadMcAnswerPool(ref: DeckRef): Promise<string[]> {
+  async function preloadMcAnswerPool(ref: DeckRef): Promise<{ all: string[]; reviewed: string[] }> {
     const db = getStudyDb();
-    const cards = await db.cards
-      .where("[libraryId+deckId]")
-      .equals([ref.libraryId, ref.deckId])
-      .limit(400)
-      .toArray();
+    const [cards, states] = await Promise.all([
+      db.cards.where("[libraryId+deckId]").equals([ref.libraryId, ref.deckId]).limit(400).toArray(),
+      db.cardStates
+        .where("[libraryId+deckId+due]")
+        .between([ref.libraryId, ref.deckId, 0], [ref.libraryId, ref.deckId, Number.MAX_SAFE_INTEGER], true, true)
+        .filter((s) => s.reps > 0)
+        .toArray(),
+    ]);
 
-    const answers: string[] = [];
+    const reviewedCardIds = new Set(states.map((s) => s.cardId));
+
+    const all: string[] = [];
+    const reviewed: string[] = [];
     const seen = new Set<string>();
     for (const c of cards) {
       const a = extractMultipleChoiceAnswerFromCard({
@@ -3806,13 +3830,13 @@ export default function Home() {
       });
       if (!a) continue;
       const key = normalizeChoiceText(a);
-      if (!key) continue;
-      if (seen.has(key)) continue;
+      if (!key || seen.has(key)) continue;
       seen.add(key);
-      answers.push(a);
-      if (answers.length >= 160) break;
+      all.push(a);
+      if (reviewedCardIds.has(c.cardId)) reviewed.push(a);
+      if (all.length >= 160) break;
     }
-    return answers;
+    return { all, reviewed };
   }
 
   async function preloadReverseFrontPool(ref: DeckRef): Promise<string[]> {
@@ -4963,37 +4987,52 @@ export default function Home() {
                             Multiple-choice isn’t available for this card.
                           </div>
                         ) : (
-                          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            {mcOptions.map((opt, idx) => (
-                              <button
-                                key={`mc-${currentId ?? ""}-${idx}-${opt.label}`}
-                                type="button"
-                                disabled={reviewBusy || mcOutcome != null}
-                                onClick={() => {
-                                  if (reviewBusy) return;
-                                  if (mcOutcome != null) return;
-
-                                  const ok = Boolean(opt.isCorrect);
-                                  setMcSelectedIndex(idx);
-                                  setMcOutcome(ok ? "correct" : "wrong");
-                                }}
-                                className={`min-h-12 rounded-2xl border bg-background px-4 py-3 text-left text-base font-medium hover:bg-foreground/5 disabled:opacity-80 ${
-                                  mcOutcome == null
-                                    ? "border-foreground/15"
-                                    : opt.isCorrect
-                                      ? "border-green-500 bg-green-500/5"
-                                      : mcSelectedIndex === idx
-                                        ? "border-red-500 bg-red-500/5"
-                                        : "border-foreground/10 opacity-60"
-                                }`}
-                              >
-                                <span className="mr-2 text-foreground/60">
-                                  {String.fromCharCode(65 + (idx % 26))}.
-                                </span>
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
+                          <>
+                            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              {mcOptions.map((opt, idx) => (
+                                <button
+                                  key={`mc-${currentId ?? ""}-${idx}-${opt.label}`}
+                                  type="button"
+                                  disabled={reviewBusy || mcOutcome != null}
+                                  onClick={() => {
+                                    if (reviewBusy || mcOutcome != null) return;
+                                    setMcSelectedIndex(idx);
+                                  }}
+                                  className={`min-h-12 rounded-2xl border bg-background px-4 py-3 text-left text-base font-medium disabled:opacity-80 ${
+                                    mcOutcome == null
+                                      ? mcSelectedIndex === idx
+                                        ? "border-foreground/60 bg-foreground/5"
+                                        : "border-foreground/15 hover:bg-foreground/5"
+                                      : opt.isCorrect
+                                        ? "border-green-500 bg-green-500/5"
+                                        : mcSelectedIndex === idx
+                                          ? "border-red-500 bg-red-500/5"
+                                          : "border-foreground/10 opacity-60"
+                                  }`}
+                                >
+                                  <span className="mr-2 text-foreground/60">
+                                    {String.fromCharCode(65 + (idx % 26))}.
+                                  </span>
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                            {mcSelectedIndex !== null && mcOutcome === null && (
+                              <div className="mt-4 flex justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const selected = mcOptions[mcSelectedIndex];
+                                    if (!selected) return;
+                                    setMcOutcome(selected.isCorrect ? "correct" : "wrong");
+                                  }}
+                                  className="caliche-primary-btn h-11 rounded-full px-8 text-sm font-medium"
+                                >
+                                  Submit
+                                </button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     ) : null}
