@@ -249,7 +249,9 @@ The easiest path is [Vercel](https://vercel.com), connect your repo and add the 
 
 ## Contributing
 
-Forks and contributions are very welcome. If you've ever wanted an Anki-like workflow that feels the same everywhere, this project was built for that and there's still plenty of room to grow.
+Forks and contributions are very welcome. If you've ever wanted an Anki-like workflow that feels the same everywhere, this project was built for that and there is still plenty of room to grow.
+
+**New to the codebase?** Check the issues labeled [good first issue](https://github.com/CalicheOrozco/caliche-cards/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) — they are small, well-scoped, and come with pointers to the right files.
 
 ```bash
 # Fork the repo, then:
@@ -259,14 +261,9 @@ npm install
 # Create your branch, make your changes, open a PR
 ```
 
-Ideas for contributions:
-- New question types or scheduler improvements
-- Better deck browser / stats
-- Themes
-- Sync backends beyond MongoDB
-- Translations / i18n
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the full setup guide and PR workflow.
 
-If you find a bug or have a feature idea, open an issue, feedback is always appreciated.
+If you find a bug or have a feature idea, open an issue using the templates provided and the feedback is always appreciated.
 
 ---
 
