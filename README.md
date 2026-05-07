@@ -8,13 +8,17 @@ An offline-first, Anki-compatible flashcard PWA built with Next.js. installable 
 
 ## Screenshots
 
-| Normal | Card Reverse | Write |
-|---|---|---|
-| ![Normal](public/screenshots/Normal.png) | ![Card Reverse](public/screenshots/Card%20Reverse.png) | ![Write](public/screenshots/Write.png) |
+| Normal | Card Reverse |
+|---|---|
+| ![Normal](public/screenshots/Normal.png) | ![Card Reverse](public/screenshots/Card%20Reverse.png) |
 
-| Multiple Choice | Reverse | Match |
-|---|---|---|
-| ![Multiple Choice](public/screenshots/Multiple%20Choice.png) | ![Reverse](public/screenshots/Reverse.png) | ![Match](public/screenshots/Match.png) |
+| Write | Multiple Choice |
+|---|---|
+| ![Write](public/screenshots/Write.png) | ![Multiple Choice](public/screenshots/Multiple%20Choice.png) |
+
+| Reverse | Match |
+|---|---|
+| ![Reverse](public/screenshots/Reverse.png) | ![Match](public/screenshots/Match.png) |
 
 ---
 
