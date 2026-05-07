@@ -2,6 +2,20 @@
 
 An offline-first, Anki-compatible flashcard PWA built with Next.js. installable on any device, works without internet, and keeps the same simple review flow everywhere.
 
+![Hero](public/screenshots/Hero%20Screenshot.png)
+
+---
+
+## Screenshots
+
+| Normal | Write | Multiple Choice |
+|---|---|---|
+| ![Normal](public/screenshots/Normal.png) | ![Write](public/screenshots/Write.png) | ![Multiple Choice](public/screenshots/Multiple%20Choice.png) |
+
+| Reverse | Match |
+|---|---|
+| ![Reverse](public/screenshots/Reverse.png) | ![Match](public/screenshots/Match.png) |
+
 ---
 
 ## Why I built this
