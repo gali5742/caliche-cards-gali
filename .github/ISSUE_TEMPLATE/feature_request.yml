@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the suggestion! Please fill out the details below so we can understand and evaluate it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the situation or frustration that led to this idea.
+      placeholder: When I study vocabulary I find it hard to... / I wish the app could...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you would like to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+      description: Any other approaches or workarounds you thought of? (optional)
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, mockups, links to similar features in other apps, or anything else that helps. (optional)
+    validations:
+      required: false

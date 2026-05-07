@@ -1,0 +1,53 @@
+name: Bug report
+description: Something is not working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a bug. Please fill out the sections below so we can reproduce and fix it.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: When I click X, Y happens instead of Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the issue?
+      placeholder: |
+        1. Import a deck
+        2. Start a review session
+        3. Click Submit
+        4. See the error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      description: e.g. iPhone 15 / Safari, MacBook / Chrome 124, Android / Firefox
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recordings
+      description: Attach any screenshots or screen recordings that help illustrate the issue. (optional)
+    validations:
+      required: false
