@@ -8,6 +8,8 @@ export const DEFAULT_DECK_CONFIG: DeckConfig = {
   cardInfoOpenByDefault: false,
   answerStyles: ["normal", "write", "multiple-choice", "reverse", "match"],
   writeLanguage: "en",
+  hiddenFieldLabels: [],
+  pinnedBackFieldLabels: [],
   learnStepsMs: [10 * 60 * 1000, 1 * DAY_MS],
   relearnStepsMs: [10 * 60 * 1000],
   graduatingIntervalDays: 3,

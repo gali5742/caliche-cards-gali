@@ -73,6 +73,8 @@ type DeckConfigPayload = {
   reviewsPerDay: number;
   cardInfoOpenByDefault?: boolean;
   writeLanguage?: "en" | "fr" | "es";
+  hiddenFieldLabels?: string[];
+  pinnedBackFieldLabels?: string[];
   updatedAt: number;
 };
 
@@ -169,6 +171,12 @@ export async function POST(req: NextRequest) {
       reviewsPerDay: Number.isFinite(d.reviewsPerDay) ? Math.max(0, Math.floor(d.reviewsPerDay)) : 0,
       cardInfoOpenByDefault: Boolean(d.cardInfoOpenByDefault),
       writeLanguage: sanitizeWriteLanguage(d.writeLanguage),
+      hiddenFieldLabels: Array.isArray((d as { hiddenFieldLabels?: unknown }).hiddenFieldLabels)
+        ? ((d as { hiddenFieldLabels: unknown[] }).hiddenFieldLabels).filter((l) => typeof l === "string") as string[]
+        : [],
+      pinnedBackFieldLabels: Array.isArray((d as { pinnedBackFieldLabels?: unknown }).pinnedBackFieldLabels)
+        ? ((d as { pinnedBackFieldLabels: unknown[] }).pinnedBackFieldLabels).filter((l) => typeof l === "string") as string[]
+        : [],
       updatedAt: d.updatedAt,
     }));
 
@@ -287,6 +295,8 @@ export async function POST(req: NextRequest) {
             reviewsPerDay: d.reviewsPerDay,
             cardInfoOpenByDefault: Boolean(d.cardInfoOpenByDefault),
             writeLanguage: sanitizeWriteLanguage(d.writeLanguage),
+            hiddenFieldLabels: d.hiddenFieldLabels,
+            pinnedBackFieldLabels: d.pinnedBackFieldLabels,
             updatedAt: d.updatedAt,
             uploadedAt: now,
           },

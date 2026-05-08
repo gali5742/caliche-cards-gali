@@ -49,7 +49,7 @@ export type DeckOverview = {
   // Number of distinct calendar days (local timezone) with at least one review.
   daysStudied: number;
 
-  config: Pick<DeckConfig, "newPerDay" | "reviewsPerDay" | "cardInfoOpenByDefault" | "answerStyles" | "writeLanguage">;
+  config: Pick<DeckConfig, "newPerDay" | "reviewsPerDay" | "cardInfoOpenByDefault" | "answerStyles" | "writeLanguage" | "hiddenFieldLabels" | "pinnedBackFieldLabels">;
 };
 
 function sanitizeAnswerStyles(raw: unknown): ReviewAnswerStyle[] {
@@ -84,13 +84,16 @@ export async function getDeckConfig(ref: DeckRef): Promise<DeckConfig> {
   const deck = await db.decks.get([ref.libraryId, ref.deckId]);
   if (!deck) return DEFAULT_DECK_CONFIG;
 
+  const d = deck as DeckEntity;
   return {
     ...DEFAULT_DECK_CONFIG,
-    newPerDay: deck.newPerDay,
-    reviewsPerDay: deck.reviewsPerDay,
-    cardInfoOpenByDefault: Boolean(deck.cardInfoOpenByDefault),
-    answerStyles: sanitizeAnswerStyles((deck as { answerStyles?: unknown }).answerStyles),
-    writeLanguage: sanitizeWriteLanguage((deck as { writeLanguage?: unknown }).writeLanguage),
+    newPerDay: d.newPerDay,
+    reviewsPerDay: d.reviewsPerDay,
+    cardInfoOpenByDefault: Boolean(d.cardInfoOpenByDefault),
+    answerStyles: sanitizeAnswerStyles(d.answerStyles),
+    writeLanguage: sanitizeWriteLanguage(d.writeLanguage),
+    hiddenFieldLabels: Array.isArray(d.hiddenFieldLabels) ? d.hiddenFieldLabels : [],
+    pinnedBackFieldLabels: Array.isArray(d.pinnedBackFieldLabels) ? d.pinnedBackFieldLabels : [],
   };
 }
 
@@ -204,6 +207,60 @@ export async function setDeckAnswerStyles(ref: DeckRef, styles: ReviewAnswerStyl
       writeLanguage: DEFAULT_DECK_CONFIG.writeLanguage,
       createdAt: now,
       updatedAt: 0,
+    });
+  }
+}
+
+export async function setDeckHiddenFieldLabels(ref: DeckRef, labels: string[]): Promise<void> {
+  const db = getStudyDb();
+  const next = Array.isArray(labels) ? labels.filter((l) => typeof l === "string") : [];
+  const now = Date.now();
+
+  const updated = await db.decks.update([ref.libraryId, ref.deckId], {
+    hiddenFieldLabels: next,
+    updatedAt: now,
+  });
+
+  if (updated === 0) {
+    await db.decks.put({
+      libraryId: ref.libraryId,
+      deckId: ref.deckId,
+      name: "",
+      newPerDay: DEFAULT_DECK_CONFIG.newPerDay,
+      reviewsPerDay: DEFAULT_DECK_CONFIG.reviewsPerDay,
+      cardInfoOpenByDefault: DEFAULT_DECK_CONFIG.cardInfoOpenByDefault,
+      answerStyles: DEFAULT_DECK_CONFIG.answerStyles,
+      writeLanguage: DEFAULT_DECK_CONFIG.writeLanguage,
+      hiddenFieldLabels: next,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+}
+
+export async function setDeckPinnedBackFieldLabels(ref: DeckRef, labels: string[]): Promise<void> {
+  const db = getStudyDb();
+  const next = Array.isArray(labels) ? labels.filter((l) => typeof l === "string") : [];
+  const now = Date.now();
+
+  const updated = await db.decks.update([ref.libraryId, ref.deckId], {
+    pinnedBackFieldLabels: next,
+    updatedAt: now,
+  });
+
+  if (updated === 0) {
+    await db.decks.put({
+      libraryId: ref.libraryId,
+      deckId: ref.deckId,
+      name: "",
+      newPerDay: DEFAULT_DECK_CONFIG.newPerDay,
+      reviewsPerDay: DEFAULT_DECK_CONFIG.reviewsPerDay,
+      cardInfoOpenByDefault: DEFAULT_DECK_CONFIG.cardInfoOpenByDefault,
+      answerStyles: DEFAULT_DECK_CONFIG.answerStyles,
+      writeLanguage: DEFAULT_DECK_CONFIG.writeLanguage,
+      pinnedBackFieldLabels: next,
+      createdAt: now,
+      updatedAt: now,
     });
   }
 }
@@ -592,6 +649,8 @@ export async function getDeckOverview(ref: DeckRef): Promise<DeckOverview> {
       cardInfoOpenByDefault: cfg.cardInfoOpenByDefault,
       answerStyles: cfg.answerStyles,
       writeLanguage: cfg.writeLanguage,
+      hiddenFieldLabels: cfg.hiddenFieldLabels,
+      pinnedBackFieldLabels: cfg.pinnedBackFieldLabels,
     },
   };
 }

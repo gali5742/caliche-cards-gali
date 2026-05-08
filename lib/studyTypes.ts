@@ -22,6 +22,12 @@ export type DeckConfig = {
   // Write mode: which alphabet/extra letters to offer as decoys.
   writeLanguage: "en" | "fr" | "es";
 
+  // UI preference: field names to hide from card info.
+  hiddenFieldLabels: string[];
+
+  // UI preference: field names to pin to the top of the back/answer view, in order.
+  pinnedBackFieldLabels: string[];
+
   // Learning / relearning delays after a PASS while in learn/relearn.
   learnStepsMs: number[];
   relearnStepsMs: number[];
@@ -58,6 +64,12 @@ export type DeckEntity = {
 
   // UI preference (not used by scheduler).
   writeLanguage?: "en" | "fr" | "es";
+
+  // UI preference (not used by scheduler).
+  hiddenFieldLabels?: string[];
+
+  // UI preference (not used by scheduler).
+  pinnedBackFieldLabels?: string[];
 
   createdAt: number;
   updatedAt: number;

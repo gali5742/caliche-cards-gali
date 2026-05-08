@@ -30,7 +30,9 @@ import {
   resetDeckProgress,
   setDeckAnswerStyles,
   setDeckCardInfoOpenByDefault,
+  setDeckHiddenFieldLabels,
   setDeckNewPerDay,
+  setDeckPinnedBackFieldLabels,
   setDeckWriteLanguage,
   startStudySession,
   upsertImportedDeck,
@@ -58,6 +60,8 @@ type ProgressPullResponse = {
     reviewsPerDay: number;
     cardInfoOpenByDefault?: boolean;
     writeLanguage?: "en" | "fr" | "es";
+    hiddenFieldLabels?: string[];
+    pinnedBackFieldLabels?: string[];
     updatedAt: number;
   }>;
 };
@@ -602,7 +606,7 @@ function extractMultipleChoiceAnswerFromCard(card: {
   backHtml: string;
   fieldsHtml?: unknown;
   fieldNames?: unknown;
-}): string | null {
+}, pinnedNorm?: string[]): string | null {
   const fieldsHtml = Array.isArray(card.fieldsHtml)
     ? (card.fieldsHtml as unknown[]).map((x) => String(x ?? ""))
     : undefined;
@@ -610,12 +614,10 @@ function extractMultipleChoiceAnswerFromCard(card: {
     ? (card.fieldNames as unknown[]).map((x) => String(x ?? ""))
     : undefined;
 
-  // If the deck defines pinned back fields (Definitions 1/2, etc) and the note
-  // has them populated, prefer the FIRST pinned field as the MC source.
   const pinned = pickFieldSectionsByLabel({
     fieldsHtml,
     fieldNames,
-    labelNormalizedInOrder: PINNED_BACK_FIELD_LABELS_NORMALIZED,
+    labelNormalizedInOrder: pinnedNorm ?? PINNED_BACK_FIELD_LABELS_NORMALIZED,
   });
   const pinnedFirstHtml = pinned[0]?.valueHtml ?? null;
 
@@ -681,58 +683,20 @@ function seededShuffle<T>(items: T[], seed: string): T[] {
   return arr;
 }
 
-const HIDDEN_FIELD_LABELS = [
-  "Índice",
-  "Sort Index",
-  "Image",
-  "Front of Card",
-  "Word",
-  "word_audio",
-  "phrasal_verb_audio",
-  "Anverso de la tarjeta",
-  "Palabra",
-  "Índice de ordenación",
-  "audio_de_la_palabra",
-];
+const HIDDEN_FIELD_LABELS_NORMALIZED = new Set<string>();
+const PINNED_BACK_FIELD_LABELS_NORMALIZED: string[] = [];
 
-// If these fields exist on the note, render them at the very top of the back
-// (answer) view, even though they also remain visible in Card info.
-//
-// Add more labels here as needed; matching is accent/spacing-insensitive.
-const PINNED_BACK_FIELD_LABELS = [
-  "Definiciones 1",
-  "Definiciones 2",
-  "Definiciones 3",
-  "Definitions 1",
-  "Definitions 2",
-  "Definitions 3",
-  "Formas irregulares 1",
-  "Formas irregulares 2",
-  "Formas irregulares 3",
-  "Irregular Forms 1",
-  "Irregular Forms 2",
-  "Irregular Forms 3",
-  "Imagen",
-];
-
-const PINNED_BACK_FIELD_LABELS_NORMALIZED = PINNED_BACK_FIELD_LABELS.map(
-  normalizeLabel
-);
-
-const HIDDEN_FIELD_LABELS_NORMALIZED = new Set(
-  HIDDEN_FIELD_LABELS.map(normalizeLabel)
-);
-
-function shouldHideFieldLabel(label: string) {
+function shouldHideFieldLabel(label: string, hiddenNorm?: Set<string>) {
   const target = normalizeLabel(label);
   if (!target) return false;
-  return HIDDEN_FIELD_LABELS_NORMALIZED.has(target);
+  return (hiddenNorm ?? HIDDEN_FIELD_LABELS_NORMALIZED).has(target);
 }
 
 function inferFieldLabelsForHtml(args: {
   html: string;
   fieldsHtml?: string[];
   fieldNames?: string[];
+  hiddenNorm?: Set<string>;
 }): string[] {
   const htmlText = htmlToText(args.html).toLowerCase();
   if (!htmlText) return [];
@@ -745,13 +709,12 @@ function inferFieldLabelsForHtml(args: {
     const fieldText = htmlToText(String(fields[i] ?? "")).toLowerCase();
     if (!fieldText) continue;
 
-    // Avoid silly matches for ultra-short values.
     const isShort = fieldText.length < 4;
     const matches = isShort ? htmlText === fieldText : htmlText.includes(fieldText);
     if (!matches) continue;
 
     const label = String(names[i] ?? "").trim() || `Field ${i + 1}`;
-    if (shouldHideFieldLabel(label)) continue;
+    if (shouldHideFieldLabel(label, args.hiddenNorm)) continue;
     if (!out.includes(label)) out.push(label);
   }
 
@@ -762,6 +725,7 @@ function inferFieldSectionsForHtml(args: {
   html: string;
   fieldsHtml?: string[];
   fieldNames?: string[];
+  hiddenNorm?: Set<string>;
 }): Array<{ index: number; label: string; valueHtml: string }> {
   const htmlText = htmlToText(args.html).toLowerCase();
   if (!htmlText) return [];
@@ -775,13 +739,12 @@ function inferFieldSectionsForHtml(args: {
     const fieldText = htmlToText(valueHtml).toLowerCase();
     if (!fieldText) continue;
 
-    // Avoid silly matches for ultra-short values.
     const isShort = fieldText.length < 4;
     const matches = isShort ? htmlText === fieldText : htmlText.includes(fieldText);
     if (!matches) continue;
 
     const label = String(names[i] ?? "").trim() || `Field ${i + 1}`;
-    if (shouldHideFieldLabel(label)) continue;
+    if (shouldHideFieldLabel(label, args.hiddenNorm)) continue;
     out.push({ index: i, label, valueHtml });
   }
 
@@ -1081,11 +1044,13 @@ function FieldsList({
   fields,
   names,
   defaultOpen,
+  hiddenNorm,
 }: {
   namespace: string;
   fields: string[] | undefined;
   names: string[] | undefined;
   defaultOpen?: boolean;
+  hiddenNorm?: Set<string>;
 }) {
   const [isOpen, setIsOpen] = useState(() => Boolean(defaultOpen));
 
@@ -1099,7 +1064,7 @@ function FieldsList({
       label: labelList[index] || `Field ${index + 1}`,
     }))
     .filter((x) => x.value !== "")
-    .filter((x) => !shouldHideFieldLabel(x.label));
+    .filter((x) => !shouldHideFieldLabel(x.label, hiddenNorm));
 
   if (nonEmpty.length === 0) return null;
 
@@ -1185,6 +1150,16 @@ export default function Home() {
   const [deckOverviews, setDeckOverviews] = useState<Record<string, DeckOverview>>({});
   const [nowTs, setNowTs] = useState(() => Date.now());
   const [reviewDeckConfig, setReviewDeckConfig] = useState<DeckConfig | null>(null);
+
+  const activeHiddenNorm = useMemo<Set<string>>(() => {
+    const labels = reviewDeckConfig?.hiddenFieldLabels ?? [];
+    return new Set<string>(labels.map(normalizeLabel));
+  }, [reviewDeckConfig]);
+
+  const activePinnedNorm = useMemo<string[]>(() => {
+    const labels = reviewDeckConfig?.pinnedBackFieldLabels ?? [];
+    return labels.map(normalizeLabel);
+  }, [reviewDeckConfig]);
 
   // ── Match answer-style state ─────────────────────────────────────────────
   const [matchPool, setMatchPool] = useState<MatchItem[]>([]);
@@ -2592,6 +2567,12 @@ export default function Home() {
                 reviewsPerDay: d.reviewsPerDay,
                 cardInfoOpenByDefault: Boolean((d as { cardInfoOpenByDefault?: unknown }).cardInfoOpenByDefault),
                 writeLanguage: sanitizeWriteLanguage((d as { writeLanguage?: unknown }).writeLanguage),
+                hiddenFieldLabels: Array.isArray((d as { hiddenFieldLabels?: unknown }).hiddenFieldLabels)
+                  ? (d as { hiddenFieldLabels: string[] }).hiddenFieldLabels
+                  : [],
+                pinnedBackFieldLabels: Array.isArray((d as { pinnedBackFieldLabels?: unknown }).pinnedBackFieldLabels)
+                  ? (d as { pinnedBackFieldLabels: string[] }).pinnedBackFieldLabels
+                  : [],
                 updatedAt: d.updatedAt,
               })),
             }),
@@ -2716,6 +2697,12 @@ export default function Home() {
                   Array.isArray(local?.answerStyles) && local.answerStyles.length > 0
                     ? local.answerStyles
                     : DEFAULT_DECK_CONFIG.answerStyles,
+                hiddenFieldLabels: Array.isArray((cfg as { hiddenFieldLabels?: unknown }).hiddenFieldLabels)
+                  ? (cfg as { hiddenFieldLabels: string[] }).hiddenFieldLabels
+                  : (local?.hiddenFieldLabels ?? []),
+                pinnedBackFieldLabels: Array.isArray((cfg as { pinnedBackFieldLabels?: unknown }).pinnedBackFieldLabels)
+                  ? (cfg as { pinnedBackFieldLabels: string[] }).pinnedBackFieldLabels
+                  : (local?.pinnedBackFieldLabels ?? []),
                 createdAt: local?.createdAt ?? updatedAt,
                 updatedAt,
               });
@@ -2921,6 +2908,25 @@ export default function Home() {
   const [editingNewPerDay, setEditingNewPerDay] = useState<
     { libraryId: string; deckId: number; value: string } | null
   >(null);
+  const [fieldConfigModal, setFieldConfigModal] = useState<{
+    type: "hidden" | "pinned";
+    libraryId: string;
+    deckId: number;
+    allFields: string[];
+    current: string[];
+  } | null>(null);
+
+  async function getDeckFieldNames(libraryId: string, deckId: number): Promise<string[]> {
+    const db = getStudyDb();
+    const cards = await db.cards.where("[libraryId+deckId]").equals([libraryId, deckId]).toArray();
+    const seen = new Set<string>();
+    for (const card of cards) {
+      for (const name of card.fieldNames) {
+        if (name) seen.add(name);
+      }
+    }
+    return [...seen];
+  }
 
   const commitNewPerDay = useCallback(
     async (libraryId: string, deckId: number, raw: string) => {
@@ -3039,6 +3045,64 @@ export default function Home() {
               ...existing.config,
               writeLanguage: next,
             },
+          },
+        };
+      });
+
+      const ov = await getDeckOverview({ libraryId, deckId });
+      setDeckOverviews((prev) => ({ ...prev, [`${libraryId}:${deckId}`]: ov }));
+
+      if (reviewRef?.libraryId === libraryId && reviewRef.deckId === deckId) {
+        setReviewOverview(ov);
+        const cfg = await getDeckConfig({ libraryId, deckId });
+        setReviewDeckConfig(cfg);
+      }
+    },
+    [reviewRef]
+  );
+
+  const commitDeckHiddenFieldLabels = useCallback(
+    async (libraryId: string, deckId: number, next: string[]) => {
+      await setDeckHiddenFieldLabels({ libraryId, deckId }, next);
+
+      setDeckOverviews((prev) => {
+        const key = `${libraryId}:${deckId}`;
+        const existing = prev[key];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [key]: {
+            ...existing,
+            config: { ...existing.config, hiddenFieldLabels: next },
+          },
+        };
+      });
+
+      const ov = await getDeckOverview({ libraryId, deckId });
+      setDeckOverviews((prev) => ({ ...prev, [`${libraryId}:${deckId}`]: ov }));
+
+      if (reviewRef?.libraryId === libraryId && reviewRef.deckId === deckId) {
+        setReviewOverview(ov);
+        const cfg = await getDeckConfig({ libraryId, deckId });
+        setReviewDeckConfig(cfg);
+      }
+    },
+    [reviewRef]
+  );
+
+  const commitDeckPinnedBackFieldLabels = useCallback(
+    async (libraryId: string, deckId: number, next: string[]) => {
+      await setDeckPinnedBackFieldLabels({ libraryId, deckId }, next);
+
+      setDeckOverviews((prev) => {
+        const key = `${libraryId}:${deckId}`;
+        const existing = prev[key];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [key]: {
+            ...existing,
+            config: { ...existing.config, pinnedBackFieldLabels: next },
           },
         };
       });
@@ -3589,8 +3653,8 @@ export default function Home() {
       backHtml: current.card.backHtml,
       fieldsHtml: current.card.fieldsHtml,
       fieldNames: current.card.fieldNames,
-    });
-  }, [current]);
+    }, activePinnedNorm);
+  }, [current, activePinnedNorm]);
 
   const mcDecoysForCard = useMemo(() => {
     if (!mcCorrectAnswer) return [];
@@ -3651,17 +3715,18 @@ export default function Home() {
       html: current.card.backHtml,
       fieldsHtml: current.card.fieldsHtml,
       fieldNames: current.card.fieldNames,
+      hiddenNorm: activeHiddenNorm,
     });
-  }, [current]);
+  }, [current, activeHiddenNorm]);
 
   const pinnedBackSections = useMemo(() => {
     if (!current) return [];
     return pickFieldSectionsByLabel({
       fieldsHtml: current.card.fieldsHtml,
       fieldNames: current.card.fieldNames,
-      labelNormalizedInOrder: PINNED_BACK_FIELD_LABELS_NORMALIZED,
+      labelNormalizedInOrder: activePinnedNorm,
     });
-  }, [current]);
+  }, [current, activePinnedNorm]);
 
   const reversePromptHtml = useMemo(() => {
     if (!current) return null;
@@ -3827,7 +3892,7 @@ export default function Home() {
         backHtml: c.backHtml,
         fieldsHtml: c.fieldsHtml,
         fieldNames: c.fieldNames,
-      });
+      }, activePinnedNorm);
       if (!a) continue;
       const key = normalizeChoiceText(a);
       if (!key || seen.has(key)) continue;
@@ -3890,7 +3955,7 @@ export default function Home() {
           backHtml: c.backHtml,
           fieldsHtml: c.fieldsHtml,
           fieldNames: c.fieldNames,
-        }) ?? htmlToText(c.backHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
+        }, activePinnedNorm) ?? htmlToText(c.backHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
       if (!front || !back) continue;
       const fk = normalizeChoiceText(front);
       const bk = normalizeChoiceText(back);
@@ -4089,14 +4154,15 @@ export default function Home() {
       html: current.card.backHtml,
       fieldsHtml: current.card.fieldsHtml,
       fieldNames: current.card.fieldNames,
+      hiddenNorm: activeHiddenNorm,
     });
-  }, [current]);
+  }, [current, activeHiddenNorm]);
 
   const answerFieldLabelsWithoutPinned = useMemo(() => {
     if (answerFieldLabels.length === 0) return [];
-    const pinned = new Set(PINNED_BACK_FIELD_LABELS_NORMALIZED);
+    const pinned = new Set(activePinnedNorm);
     return answerFieldLabels.filter((l) => !pinned.has(normalizeLabel(l)));
-  }, [answerFieldLabels]);
+  }, [answerFieldLabels, activePinnedNorm]);
 
   const pinnedBackSectionIndexes = useMemo(() => {
     return new Set(pinnedBackSections.map((s) => s.index));
@@ -4688,6 +4754,44 @@ export default function Home() {
                                       <option value="es">Español</option>
                                     </select>
                                   </div>
+
+                                  <button
+                                    type="button"
+                                    className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-foreground/5"
+                                    onClick={() => {
+                                      setOpenDeckMenu(null);
+                                      void getDeckFieldNames(lib.id, d.id).then((allFields) => {
+                                        setFieldConfigModal({
+                                          type: "hidden",
+                                          libraryId: lib.id,
+                                          deckId: d.id,
+                                          allFields,
+                                          current: overview?.config.hiddenFieldLabels ?? [],
+                                        });
+                                      });
+                                    }}
+                                  >
+                                    Hidden fields
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-foreground/5"
+                                    onClick={() => {
+                                      setOpenDeckMenu(null);
+                                      void getDeckFieldNames(lib.id, d.id).then((allFields) => {
+                                        setFieldConfigModal({
+                                          type: "pinned",
+                                          libraryId: lib.id,
+                                          deckId: d.id,
+                                          allFields,
+                                          current: overview?.config.pinnedBackFieldLabels ?? [],
+                                        });
+                                      });
+                                    }}
+                                  >
+                                    Pinned back fields
+                                  </button>
 
                                   <button
                                     type="button"
@@ -5342,6 +5446,7 @@ export default function Home() {
                         fields={current.card.fieldsHtml}
                         names={current.card.fieldNames}
                         defaultOpen={Boolean(reviewDeckConfig?.cardInfoOpenByDefault)}
+                        hiddenNorm={activeHiddenNorm}
                       />
                     ) : null}
                   </div>
@@ -5448,6 +5553,214 @@ export default function Home() {
           </main>
         ) : null}
       </div>
+
+      {fieldConfigModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setFieldConfigModal(null); }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-foreground/15 bg-background p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">
+                {fieldConfigModal.type === "hidden" ? "Hidden fields" : "Pinned back fields"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setFieldConfigModal(null)}
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-foreground/15 text-foreground/60 hover:bg-foreground/5"
+              >
+                <FaTimes className="h-3 w-3" />
+              </button>
+            </div>
+
+            {fieldConfigModal.type === "hidden" ? (
+              <HiddenFieldsModalBody
+                allFields={fieldConfigModal.allFields}
+                current={fieldConfigModal.current}
+                onSave={(next) => {
+                  void commitDeckHiddenFieldLabels(fieldConfigModal.libraryId, fieldConfigModal.deckId, next);
+                  setFieldConfigModal(null);
+                }}
+              />
+            ) : (
+              <PinnedFieldsModalBody
+                allFields={fieldConfigModal.allFields}
+                current={fieldConfigModal.current}
+                onSave={(next) => {
+                  void commitDeckPinnedBackFieldLabels(fieldConfigModal.libraryId, fieldConfigModal.deckId, next);
+                  setFieldConfigModal(null);
+                }}
+              />
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function HiddenFieldsModalBody({
+  allFields,
+  current,
+  onSave,
+}: {
+  allFields: string[];
+  current: string[];
+  onSave: (next: string[]) => void;
+}) {
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set(current));
+
+  const toggle = (field: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(field)) next.delete(field);
+      else next.add(field);
+      return next;
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-foreground/60">
+        Hidden fields never appear in Card info during review.
+      </p>
+      {allFields.length === 0 ? (
+        <p className="text-xs text-foreground/50">No fields found for this deck.</p>
+      ) : (
+        <div className="max-h-64 overflow-y-auto rounded-xl border border-foreground/10">
+          {allFields.map((field) => (
+            <label
+              key={field}
+              className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-sm hover:bg-foreground/5"
+            >
+              <span className="truncate">{field}</span>
+              <input
+                type="checkbox"
+                className="h-4 w-4 shrink-0"
+                checked={hidden.has(field)}
+                onChange={() => toggle(field)}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        className="caliche-primary-btn mt-1 h-10 rounded-full px-6 text-sm font-medium"
+        onClick={() => onSave([...hidden])}
+      >
+        Save
+      </button>
+    </div>
+  );
+}
+
+function PinnedFieldsModalBody({
+  allFields,
+  current,
+  onSave,
+}: {
+  allFields: string[];
+  current: string[];
+  onSave: (next: string[]) => void;
+}) {
+  const [pinned, setPinned] = useState<string[]>(() => current.filter((f) => allFields.includes(f)));
+
+  const available = allFields.filter((f) => !pinned.includes(f));
+
+  const add = (field: string) => setPinned((prev) => [...prev, field]);
+  const remove = (idx: number) => setPinned((prev) => prev.filter((_, i) => i !== idx));
+  const moveUp = (idx: number) => {
+    if (idx === 0) return;
+    setPinned((prev) => {
+      const next = [...prev];
+      [next[idx - 1], next[idx]] = [next[idx]!, next[idx - 1]!];
+      return next;
+    });
+  };
+  const moveDown = (idx: number) => {
+    setPinned((prev) => {
+      if (idx >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[idx], next[idx + 1]] = [next[idx + 1]!, next[idx]!];
+      return next;
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-foreground/60">
+        Pinned fields appear at the top of the answer. The first one is also used as the Multiple Choice answer source.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="mb-1.5 text-xs font-medium text-foreground/50">Available</div>
+          <div className="max-h-52 overflow-y-auto rounded-xl border border-foreground/10">
+            {available.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-foreground/40">All fields pinned</p>
+            ) : (
+              available.map((field) => (
+                <button
+                  key={field}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-foreground/5"
+                  onClick={() => add(field)}
+                >
+                  <span className="truncate">{field}</span>
+                  <span className="shrink-0 text-foreground/40">+</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1.5 text-xs font-medium text-foreground/50">Pinned (in order)</div>
+          <div className="max-h-52 overflow-y-auto rounded-xl border border-foreground/10">
+            {pinned.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-foreground/40">None pinned</p>
+            ) : (
+              pinned.map((field, idx) => (
+                <div key={field} className="flex items-center gap-1 px-2 py-1.5">
+                  <span className="min-w-0 flex-1 truncate text-xs">{field}</span>
+                  <button
+                    type="button"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-foreground/40 hover:bg-foreground/10 disabled:opacity-20"
+                    onClick={() => moveUp(idx)}
+                    disabled={idx === 0}
+                  >
+                    ▴
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-foreground/40 hover:bg-foreground/10 disabled:opacity-20"
+                    onClick={() => moveDown(idx)}
+                    disabled={idx === pinned.length - 1}
+                  >
+                    ▾
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-foreground/40 hover:bg-foreground/10"
+                    onClick={() => remove(idx)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="caliche-primary-btn mt-1 h-10 rounded-full px-6 text-sm font-medium"
+        onClick={() => onSave(pinned)}
+      >
+        Save
+      </button>
     </div>
   );
 }
