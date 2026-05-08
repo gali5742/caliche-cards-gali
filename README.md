@@ -116,6 +116,8 @@ Uses a spaced-repetition algorithm (SM-2 inspired) with configurable steps, ease
 | **Card info open** | Toggle — whether the card info panel is expanded by default during review |
 | **Type of cards** | Checkboxes to enable or disable each question type: Normal, Write, Multiple-choice, Reverse, Match |
 | **Write language** | Language used for the on-screen keyboard in Write mode (English, Español, Français) |
+| **Hidden fields** | Opens a modal to choose which card fields are hidden from the Card info panel during review. Settings sync across devices. |
+| **Pinned back fields** | Opens a modal to choose which fields appear at the top of the answer view, and in what order. The first pinned field is used as the answer source for Multiple-choice and Reverse modes. Settings sync across devices. |
 | **Reset progress** | Resets all SRS progress for that deck — cards go back to "new". Does not delete the deck. |
 | **Delete** | Permanently removes the deck and its cards from local storage |
 
