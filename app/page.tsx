@@ -2919,6 +2919,7 @@ export default function Home() {
     allFields: string[];
     current: string[];
   } | null>(null);
+  const [showCountersInfo, setShowCountersInfo] = useState(false);
 
   async function getDeckFieldNames(libraryId: string, deckId: number): Promise<string[]> {
     const db = getStudyDb();
@@ -4947,21 +4948,32 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="text-sm text-foreground/70">
-                    Due:{" "}
-                    {reviewOverview
-                      ? reviewOverview.learningDue + reviewOverview.reviewShown
-                      : 0}
-                    {reviewOverview ? (
-                      <>
-                        {" "}• New: {reviewOverview.newShown}
-                        {" "}• Learning: {reviewOverview.learningDue}
-                        {" "}• Review: {reviewOverview.reviewShown}
-                      </>
-                    ) : null}
-                    {reviewOverview && reviewOverview.learningWaiting > 0 ? (
-                      <> {" "}• Waiting: {reviewOverview.learningWaiting}</>
-                    ) : null}
+                  <div className="flex items-center gap-1.5">
+                     <button
+                      type="button"
+                      onClick={() => setShowCountersInfo(true)}
+                      aria-label="What do these numbers mean?"
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-foreground/30 text-xs text-foreground/50 hover:border-foreground/60 hover:text-foreground/80"
+                    >
+                      i
+                    </button>
+                    <div className="text-sm text-foreground/70">
+                      Due:{" "}
+                      {reviewOverview
+                        ? reviewOverview.learningDue + reviewOverview.reviewShown
+                        : 0}
+                      {reviewOverview ? (
+                        <>
+                          {" "}• New: {reviewOverview.newShown}
+                          {" "}• Learning: {reviewOverview.learningDue}
+                          {" "}• Review: {reviewOverview.reviewShown}
+                        </>
+                      ) : null}
+                      {reviewOverview && reviewOverview.learningWaiting > 0 ? (
+                        <> {" "}• Waiting: {reviewOverview.learningWaiting}</>
+                      ) : null}
+                    </div>
+                    
                   </div>
                   <button
                     type="button"
@@ -5680,6 +5692,49 @@ export default function Home() {
           </main>
         ) : null}
       </div>
+
+      {showCountersInfo ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowCountersInfo(false); }}
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold">What do the counters mean?</h2>
+              <button
+                type="button"
+                onClick={() => setShowCountersInfo(false)}
+                className="rounded-full p-1 text-foreground/50 hover:bg-foreground/10"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <span className="font-medium">Due</span>
+                <span className="ml-1 text-foreground/60">— Cards you can answer right now. Includes learning, review, and new cards up to your daily limits.</span>
+              </li>
+              <li>
+                <span className="font-medium">New</span>
+                <span className="ml-1 text-foreground/60">— Cards you have never seen before, shown up to your New/day limit.</span>
+              </li>
+              <li>
+                <span className="font-medium">Learning</span>
+                <span className="ml-1 text-foreground/60">— Cards in active learning: cards you are seeing for the first time today, plus cards you failed and are relearning. These repeat on short intervals until they graduate.</span>
+              </li>
+              <li>
+                <span className="font-medium">Review</span>
+                <span className="ml-1 text-foreground/60">— Cards you already know, returning today based on the spaced-repetition schedule. Shown up to your Review/day limit.</span>
+              </li>
+              <li>
+                <span className="font-medium">Waiting</span>
+                <span className="ml-1 text-foreground/60">— Learning cards on a short timer (e.g. 10 min). They are not available yet but will appear automatically when their time is up.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      ) : null}
 
       {fieldConfigModal ? (
         <div
