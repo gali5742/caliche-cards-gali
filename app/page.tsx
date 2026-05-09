@@ -5058,11 +5058,11 @@ export default function Home() {
                               </div>
                             )}
 
-                            <div className="mt-3 flex justify-center gap-3">
-                              {writePicked.length > 0 && writeOutcome == null && (
+                            {writePicked.length > 0 && writeOutcome == null && (
+                              <div className="mt-2 flex justify-center">
                                 <button
                                   type="button"
-                                  className="h-11 rounded-full border border-foreground/20 px-5 text-sm font-medium text-foreground/60 hover:bg-foreground/5 disabled:opacity-50"
+                                  className="rounded-full border border-foreground/20 px-4 py-1 text-xs font-medium text-foreground/50 hover:bg-foreground/5 disabled:opacity-50"
                                   disabled={reviewBusy}
                                   onClick={() => {
                                     writeDragRef.current = null;
@@ -5072,33 +5072,8 @@ export default function Home() {
                                 >
                                   Clear
                                 </button>
-                              )}
-                              <button
-                                type="button"
-                                className="h-11 rounded-full bg-foreground px-6 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-                                disabled={
-                                  reviewBusy ||
-                                  !writeIsAvailable ||
-                                  writePicked.length === 0 ||
-                                  writeOutcome != null
-                                }
-                                onClick={() => {
-                                  if (!writeIsAvailable) return;
-                                  if (writePicked.length === 0) return;
-                                  if (writeOutcome != null) return;
-                                  writeDragRef.current = null;
-                                  setWriteDrag(null);
-                                  const expected = writeExpectedChars.join("");
-                                  const answer = writePicked.map((p) => p.ch).join("");
-                                  const ok =
-                                    answer.normalize("NFKC").toLowerCase() ===
-                                    expected.normalize("NFKC").toLowerCase();
-                                  setWriteOutcome(ok ? "correct" : "wrong");
-                                }}
-                              >
-                                Submit
-                              </button>
-                            </div>
+                              </div>
+                            )}
 
                             <div className="mt-4 flex flex-wrap justify-center gap-2">
                               {writeBank.map((ch, idx) => {
@@ -5122,6 +5097,34 @@ export default function Home() {
                                   </button>
                                 );
                               })}
+                            </div>
+
+                            <div className="mt-5 flex justify-center">
+                              <button
+                                type="button"
+                                className="caliche-primary-btn h-11 rounded-full px-8 text-sm font-medium disabled:opacity-50"
+                                disabled={
+                                  reviewBusy ||
+                                  !writeIsAvailable ||
+                                  writePicked.length === 0 ||
+                                  writeOutcome != null
+                                }
+                                onClick={() => {
+                                  if (!writeIsAvailable) return;
+                                  if (writePicked.length === 0) return;
+                                  if (writeOutcome != null) return;
+                                  writeDragRef.current = null;
+                                  setWriteDrag(null);
+                                  const expected = writeExpectedChars.join("");
+                                  const answer = writePicked.map((p) => p.ch).join("");
+                                  const ok =
+                                    answer.normalize("NFKC").toLowerCase() ===
+                                    expected.normalize("NFKC").toLowerCase();
+                                  setWriteOutcome(ok ? "correct" : "wrong");
+                                }}
+                              >
+                                Submit
+                              </button>
                             </div>
                           </>
                         )}
