@@ -5013,30 +5013,46 @@ export default function Home() {
                                           {showDropBefore && (
                                             <span className="mr-1 h-10 w-1 rounded-full bg-blue-500 sm:h-12" />
                                           )}
-                                          <button
-                                            ref={(el) => { writePickedRefs.current[pickedIdx] = el; }}
-                                            type="button"
-                                            disabled={reviewBusy || writeOutcome != null}
-                                            onPointerDown={(e) => {
-                                              if (reviewBusy || writeOutcome != null) return;
-                                              e.preventDefault();
-                                              const state = { fromIdx: pickedIdx, ch: p.ch, x: e.clientX, y: e.clientY, dropIdx: pickedIdx };
-                                              writeDragRef.current = state;
-                                              setWriteDrag(state);
-                                            }}
-                                            aria-label={p.ch === " " ? "space" : p.ch}
-                                            className={`inline-flex h-10 min-w-10 cursor-grab items-center justify-center rounded-2xl border px-2 text-lg transition-opacity active:cursor-grabbing disabled:opacity-60 sm:h-12 sm:min-w-12 sm:px-3 sm:text-2xl ${
-                                              writeOutcome != null
-                                                ? writeOutcome === "correct"
-                                                  ? "border-green-500 bg-green-500/10 text-green-500"
-                                                  : "border-red-500 bg-red-500/10 text-red-500"
-                                                : isDragging
-                                                  ? "border-blue-500 bg-blue-500/10 opacity-40"
-                                                  : "border-foreground/15 bg-foreground/5"
-                                            }`}
-                                          >
-                                            {p.ch === " " ? "␣" : p.ch}
-                                          </button>
+                                          <span className="relative">
+                                            {writeOutcome == null && (
+                                              <button
+                                                type="button"
+                                                disabled={reviewBusy}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setWritePicked((prev) => prev.filter((_, i) => i !== pickedIdx));
+                                                }}
+                                                className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-background border border-foreground/25 text-foreground/50 shadow-sm hover:border-red-400 hover:text-red-400 disabled:opacity-40 transition-colors"
+                                                aria-label={`Remove ${p.ch}`}
+                                              >
+                                                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true"><line x1="1" y1="1" x2="7" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="7" y1="1" x2="1" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                                              </button>
+                                            )}
+                                            <button
+                                              ref={(el) => { writePickedRefs.current[pickedIdx] = el; }}
+                                              type="button"
+                                              disabled={reviewBusy || writeOutcome != null}
+                                              onPointerDown={(e) => {
+                                                if (reviewBusy || writeOutcome != null) return;
+                                                e.preventDefault();
+                                                const state = { fromIdx: pickedIdx, ch: p.ch, x: e.clientX, y: e.clientY, dropIdx: pickedIdx };
+                                                writeDragRef.current = state;
+                                                setWriteDrag(state);
+                                              }}
+                                              aria-label={p.ch === " " ? "space" : p.ch}
+                                              className={`inline-flex h-10 min-w-10 cursor-grab items-center justify-center rounded-2xl border px-2 text-lg transition-opacity active:cursor-grabbing disabled:opacity-60 sm:h-12 sm:min-w-12 sm:px-3 sm:text-2xl ${
+                                                writeOutcome != null
+                                                  ? writeOutcome === "correct"
+                                                    ? "border-green-500 bg-green-500/10 text-green-500"
+                                                    : "border-red-500 bg-red-500/10 text-red-500"
+                                                  : isDragging
+                                                    ? "border-blue-500 bg-blue-500/10 opacity-40"
+                                                    : "border-foreground/15 bg-foreground/5"
+                                              }`}
+                                            >
+                                              {p.ch === " " ? "␣" : p.ch}
+                                            </button>
+                                          </span>
                                         </span>
                                       );
                                     })}
