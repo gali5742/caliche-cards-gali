@@ -184,6 +184,32 @@ export async function setDeckNewPerDay(ref: DeckRef, newPerDay: number): Promise
   }
 }
 
+export async function setDeckReviewsPerDay(ref: DeckRef, reviewsPerDay: number): Promise<void> {
+  const db = getStudyDb();
+  const next = Number.isFinite(reviewsPerDay) ? Math.max(0, Math.floor(reviewsPerDay)) : 0;
+  const now = Date.now();
+
+  const updated = await db.decks.update([ref.libraryId, ref.deckId], {
+    reviewsPerDay: next,
+    updatedAt: now,
+  });
+
+  if (updated === 0) {
+    await db.decks.put({
+      libraryId: ref.libraryId,
+      deckId: ref.deckId,
+      name: "",
+      newPerDay: DEFAULT_DECK_CONFIG.newPerDay,
+      reviewsPerDay: next,
+      cardInfoOpenByDefault: DEFAULT_DECK_CONFIG.cardInfoOpenByDefault,
+      answerStyles: DEFAULT_DECK_CONFIG.answerStyles,
+      writeLanguage: DEFAULT_DECK_CONFIG.writeLanguage,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+}
+
 export async function setDeckAnswerStyles(ref: DeckRef, styles: ReviewAnswerStyle[]): Promise<void> {
   const db = getStudyDb();
   const next = sanitizeAnswerStyles(styles);
