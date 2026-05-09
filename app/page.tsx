@@ -629,7 +629,16 @@ function extractMultipleChoiceAnswerFromCard(card: {
     fieldNames,
   });
 
-  const firstHtml = pinnedFirstHtml ?? sections[0]?.valueHtml ?? card.backHtml;
+  // Skip any section whose text is identical to the card front — this happens
+  // when the word itself appears in the back (e.g. in an example sentence),
+  // causing inferFieldSectionsForHtml to surface the word field as the first match.
+  const frontText = htmlToText(card.frontHtml).replace(/\[sound:[^\]]+\]/gi, "").trim().toLowerCase();
+  const firstSectionHtml = sections.find((sec) => {
+    const t = htmlToText(sec.valueHtml).trim().toLowerCase();
+    return t.length > 0 && t !== frontText;
+  })?.valueHtml ?? null;
+
+  const firstHtml = pinnedFirstHtml ?? firstSectionHtml ?? card.backHtml;
   return extractMultipleChoiceAnswerFromBackHtml(firstHtml);
 }
 
