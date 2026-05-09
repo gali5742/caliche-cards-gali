@@ -725,9 +725,10 @@ export async function getNextCard(ref: DeckRef, options: GetNextCardOptions = {}
   };
 
   if (canReview || canNew) {
-    const progressNew = cfg.newPerDay > 0 ? newDone / cfg.newPerDay : 1;
-    const progressReview = cfg.reviewsPerDay > 0 ? reviewDone / cfg.reviewsPerDay : 1;
-    const preferNew = canNew && (!canReview || progressNew < progressReview);
+    // When both types are available, pick randomly with a slight bias toward new cards.
+    // This avoids exhausting all reviews before showing any new cards, regardless of
+    // how different newPerDay and reviewsPerDay are.
+    const preferNew = canNew && (!canReview || Math.random() < 0.6);
 
     const first = preferNew ? await tryPickNew() : await tryPickReview();
     if (first) return first;
