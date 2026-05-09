@@ -4105,7 +4105,7 @@ export default function Home() {
     setMatchSubmitted(false);
     setMatchCardResults([]);
     setMatchCardPreview(null);
-  }, [currentId, reviewAnswerStyle]);
+  }, [currentId, reviewAnswerStyle, cardAppearanceToken]);
 
   // Build the per-card match game when style is "match".
   useEffect(() => {
@@ -4641,14 +4641,14 @@ export default function Home() {
                               {overview ? overview.newShown : 0}
                             </div>
                             <div className="hidden sm:block text-center text-sm text-foreground/70">
-                              {overview ? overview.learningDue : 0}
+                              {overview ? overview.learningDue + overview.learningWaiting : 0}
                             </div>
                             <div className="hidden sm:block text-center text-sm font-medium text-green-500">
                               {overview ? overview.reviewShown : 0}
                             </div>
                             <div className="hidden sm:block text-center text-sm font-semibold text-foreground">
                               {overview
-                                ? overview.newShown + overview.reviewShown + overview.learningDue
+                                ? overview.newShown + overview.reviewShown + overview.learningDue + overview.learningWaiting
                                 : "—"}
                             </div>
                             <div className="hidden sm:block text-center text-sm text-foreground/70">
