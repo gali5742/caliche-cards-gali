@@ -616,30 +616,33 @@ function extractMultipleChoiceAnswerFromCard(card: {
     ? (card.fieldNames as unknown[]).map((x) => String(x ?? ""))
     : undefined;
 
+  // Pinned fields are the most reliable source — use the first one if configured.
   const pinned = pickFieldSectionsByLabel({
     fieldsHtml,
     fieldNames,
     labelNormalizedInOrder: pinnedNorm ?? PINNED_BACK_FIELD_LABELS_NORMALIZED,
   });
-  const pinnedFirstHtml = pinned[0]?.valueHtml ?? null;
+  if (pinned[0]?.valueHtml) {
+    return extractMultipleChoiceAnswerFromBackHtml(pinned[0].valueHtml);
+  }
 
-  const sections = inferFieldSectionsForHtml({
-    html: card.backHtml,
-    fieldsHtml,
-    fieldNames,
-  });
-
-  // Skip any section whose text is identical to the card front — this happens
-  // when the word itself appears in the back (e.g. in an example sentence),
-  // causing inferFieldSectionsForHtml to surface the word field as the first match.
+  // No pinned field: scan backHtml line by line and return the first line that
+  // is not empty and not identical to the card front. Many Anki templates
+  // repeat the front word at the top of the back, so we must skip it.
   const frontText = htmlToText(card.frontHtml).replace(/\[sound:[^\]]+\]/gi, "").trim().toLowerCase();
-  const firstSectionHtml = sections.find((sec) => {
-    const t = htmlToText(sec.valueHtml).trim().toLowerCase();
-    return t.length > 0 && t !== frontText;
-  })?.valueHtml ?? null;
+  const lines = htmlToTextWithBreaks(card.backHtml)
+    .split("\n")
+    .map((s) => s.replace(/\[sound:[^\]]+\]/gi, "").trim())
+    .filter(Boolean);
 
-  const firstHtml = pinnedFirstHtml ?? firstSectionHtml ?? card.backHtml;
-  return extractMultipleChoiceAnswerFromBackHtml(firstHtml);
+  for (const line of lines) {
+    if (line.toLowerCase() === frontText) continue;
+    const beforeSep = line.split(/\s*(?:•|\||;|\/|·)\s*/u)[0]?.trim();
+    const answer = String(beforeSep ?? line).replace(/\s+/gu, " ").trim();
+    if (answer && answer.toLowerCase() !== frontText) return answer;
+  }
+
+  return null;
 }
 
 function pickWriteTargetFromCard(card: {
