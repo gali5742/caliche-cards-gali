@@ -3428,13 +3428,23 @@ export default function Home() {
     const seq = (loadNextSeqRef.current += 1);
     const key = `${ref.libraryId}:${ref.deckId}`;
 
-    const nextPromise = getNextCard(ref, {
+    let next = await getNextCard(ref, {
       learnAheadMs: 60 * 60 * 1000,
       learnAheadMode: "learn+relearn",
       excludeCardId,
     });
 
-    const next = await nextPromise;
+    // If nothing was found while excluding the just-answered card, retry without
+    // the exclusion — it may be the only card available (single learn/relearn card
+    // due soon). The exclude is a soft preference, not a hard rule.
+    if (next == null && excludeCardId != null) {
+      if (loadNextSeqRef.current !== seq) return;
+      next = await getNextCard(ref, {
+        learnAheadMs: 60 * 60 * 1000,
+        learnAheadMode: "learn+relearn",
+      });
+    }
+
     if (loadNextSeqRef.current !== seq) return;
     setCurrent(next);
     setShowAnswer(false);
