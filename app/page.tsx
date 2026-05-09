@@ -15,6 +15,7 @@ import {
 import { clearMedia, getMediaBlob, saveMediaItems } from "../lib/mediaStorage";
 import { clearApkg, getApkgFile, saveApkgFile } from "../lib/apkgStorage";
 import type {
+  CardEntity,
   CardStateEntity,
   DeckConfig,
   DeckRef,
@@ -1177,6 +1178,7 @@ export default function Home() {
   const [matchSubmitted, setMatchSubmitted] = useState(false);
   // matchCardResults[slot] = true if that slot was correctly matched (set on submit)
   const [matchCardResults, setMatchCardResults] = useState<boolean[]>([]);
+  const [matchCardPreview, setMatchCardPreview] = useState<{ item: MatchItem; card: CardEntity } | null>(null);
 
   // Prevent double autoplay from re-renders; reset when the card appearance changes.
   const lastAutoPlayedCardAppearanceTokenRef = useRef<number | null>(null);
@@ -4090,6 +4092,7 @@ export default function Home() {
     setMatchAssigned([]);
     setMatchSubmitted(false);
     setMatchCardResults([]);
+    setMatchCardPreview(null);
   }, [currentId, reviewAnswerStyle]);
 
   // Build the per-card match game when style is "match".
@@ -4526,11 +4529,12 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-foreground/15 bg-surface-strong/70">
-                  <div className="hidden sm:grid grid-cols-[1fr_80px_90px_110px_130px_80px_80px_48px] gap-2 border-b border-foreground/15 px-4 py-3 text-xs font-medium text-foreground/70">
+                  <div className="hidden sm:grid grid-cols-[1fr_80px_90px_110px_90px_130px_80px_80px_48px] gap-2 border-b border-foreground/15 px-4 py-3 text-xs font-medium text-foreground/70">
                     <div>Deck</div>
                     <div className="text-center">New</div>
                     <div className="text-center">Learning</div>
                     <div className="text-center">Review</div>
+                    <div className="text-center">Today</div>
                     <div className="text-center">Total</div>
                     <div className="text-center">Days left</div>
                     <div className="text-center">Days done</div>
@@ -4563,7 +4567,7 @@ export default function Home() {
                         return (
                           <div
                             key={`${lib.id}:${d.id}`}
-                            className={`grid grid-cols-[1fr_48px] sm:grid-cols-[1fr_80px_90px_110px_130px_80px_80px_48px] items-center gap-2 rounded-xl px-2 py-2 ${
+                            className={`grid grid-cols-[1fr_48px] sm:grid-cols-[1fr_80px_90px_110px_90px_130px_80px_80px_48px] items-center gap-2 rounded-xl px-2 py-2 ${
                               isSelected
                                 ? "bg-foreground/5"
                                 : "hover:bg-foreground/5"
@@ -4629,6 +4633,11 @@ export default function Home() {
                             </div>
                             <div className="hidden sm:block text-center text-sm font-medium text-green-500">
                               {overview ? overview.reviewShown : 0}
+                            </div>
+                            <div className="hidden sm:block text-center text-sm font-semibold text-foreground">
+                              {overview
+                                ? overview.newShown + overview.reviewShown + overview.learningDue
+                                : "—"}
                             </div>
                             <div className="hidden sm:block text-center text-sm text-foreground/70">
                               {overview
@@ -5297,10 +5306,22 @@ export default function Home() {
                                     matchRightOrder[assignedBottomIdx] !== slot;
                                   return (
                                     <div key={`slot-${slot}`} className="flex flex-col gap-1.5">
-                                      <div className="rounded-xl bg-foreground/8 px-2 py-2.5 text-center text-sm font-semibold leading-tight">
+                                      <button
+                                        type="button"
+                                        disabled={!matchSubmitted}
+                                        onClick={() => {
+                                          if (!matchSubmitted || !reviewRef) return;
+                                          const db = getStudyDb();
+                                          void db.cards.get([reviewRef.libraryId, item.cardId]).then((card) => {
+                                            if (card) setMatchCardPreview({ item, card });
+                                          });
+                                        }}
+                                        className={`rounded-xl bg-foreground/8 px-2 py-2.5 text-center text-sm font-semibold leading-tight w-full ${matchSubmitted ? "cursor-pointer hover:bg-foreground/15 transition-colors" : ""}`}
+                                      >
                                         {item.front}
                                         {item.soundFile ? <span className="ml-1 text-foreground/40 text-xs">♪</span> : null}
-                                      </div>
+                                        {matchSubmitted && <span className="ml-1 text-foreground/30 text-xs">↗</span>}
+                                      </button>
                                       <button
                                         type="button"
                                         disabled={matchSubmitted}
@@ -5762,6 +5783,114 @@ export default function Home() {
           </div>
         </div>
       ) : null}
+
+      {matchCardPreview ? (() => {
+        const previewCard = matchCardPreview.card;
+        const previewPinnedSections = pickFieldSectionsByLabel({
+          fieldsHtml: previewCard.fieldsHtml,
+          fieldNames: previewCard.fieldNames,
+          labelNormalizedInOrder: activePinnedNorm,
+        });
+        const previewAllSections = inferFieldSectionsForHtml({
+          html: previewCard.backHtml,
+          fieldsHtml: previewCard.fieldsHtml,
+          fieldNames: previewCard.fieldNames,
+          hiddenNorm: activeHiddenNorm,
+        });
+        const previewPinnedIndexes = new Set(previewPinnedSections.map((s) => s.index));
+        const previewNonPinnedSections = previewAllSections.filter((s) => !previewPinnedIndexes.has(s.index));
+
+        return (
+          <div className="fixed inset-0 z-50 overflow-auto bg-background" onClick={() => setMatchCardPreview(null)}>
+            <div className="caliche-container mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-10 sm:py-12">
+              <div className="relative overflow-hidden rounded-3xl border border-foreground/15 bg-surface-strong/70 p-6 shadow-[0_18px_50px_-30px_rgba(6,18,33,0.55)]" onClick={(e) => e.stopPropagation()}>
+                {/* Sound + Close buttons */}
+                <div className="absolute right-4 top-4 flex items-center gap-2">
+                  {matchCardPreview.item.soundFile ? (
+                    <SoundButton
+                      namespace={activeNamespace}
+                      filename={matchCardPreview.item.soundFile}
+                      variant="icon"
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setMatchCardPreview(null)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/50 hover:bg-foreground/10"
+                    aria-label="Close"
+                  >
+                    <FaTimes className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                  {/* Front */}
+                  <div className="py-10">
+                    <CardFace
+                      namespace={activeNamespace}
+                      html={previewCard.frontHtml}
+                      className="text-center text-4xl font-semibold leading-tight tracking-tight"
+                    />
+                  </div>
+
+                  {/* Back */}
+                  <div className="border-t border-foreground/15 pt-6">
+                    {previewPinnedSections.length > 0 ? (
+                      <div className="mb-6 flex flex-col gap-4">
+                        {previewPinnedSections.map((sec) => (
+                          <div key={`pinned-${sec.index}-${sec.label}`}>
+                            <div className="mb-1 text-xs text-center font-medium text-foreground/60">
+                              {sec.label}:
+                            </div>
+                            <CardFace
+                              namespace={activeNamespace}
+                              html={sec.valueHtml}
+                              className="text-center text-xl leading-8"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {previewNonPinnedSections.length > 0 ? (
+                      <div className="flex flex-col gap-4">
+                        {previewNonPinnedSections.map((sec) => (
+                          <div key={`${sec.index}-${sec.label}`}>
+                            <div className="mb-1 text-xs text-center font-medium text-foreground/60">
+                              {sec.label}:
+                            </div>
+                            <CardFace
+                              namespace={activeNamespace}
+                              html={sec.valueHtml}
+                              className="text-center text-xl leading-8"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      previewPinnedSections.length === 0 ? (
+                        <CardFace
+                          namespace={activeNamespace}
+                          html={previewCard.backHtml}
+                          className="text-center text-xl leading-8"
+                        />
+                      ) : null
+                    )}
+                  </div>
+
+                  <FieldsList
+                    namespace={activeNamespace}
+                    fields={previewCard.fieldsHtml}
+                    names={previewCard.fieldNames}
+                    defaultOpen={Boolean(reviewDeckConfig?.cardInfoOpenByDefault)}
+                    hiddenNorm={activeHiddenNorm}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
 
       {showCountersInfo ? (
         <div
