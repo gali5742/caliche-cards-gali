@@ -32,6 +32,7 @@ import {
   setDeckCardInfoOpenByDefault,
   setDeckHiddenFieldLabels,
   setDeckNewPerDay,
+  setDeckReviewsPerDay,
   setDeckPinnedBackFieldLabels,
   setDeckWriteLanguage,
   startStudySession,
@@ -2909,9 +2910,17 @@ export default function Home() {
   const [editingDeck, setEditingDeck] = useState<
     { libraryId: string; deckId: number; value: string } | null
   >(null);
-  const [editingNewPerDay, setEditingNewPerDay] = useState<
-    { libraryId: string; deckId: number; value: string } | null
-  >(null);
+  const [limitsModal, setLimitsModal] = useState<{
+    libraryId: string;
+    deckId: number;
+    newPerDay: string;
+    reviewsPerDay: string;
+  } | null>(null);
+  const [cardTypesModal, setCardTypesModal] = useState<{
+    libraryId: string;
+    deckId: number;
+    styles: ReviewAnswerStyle[];
+  } | null>(null);
   const [fieldConfigModal, setFieldConfigModal] = useState<{
     type: "hidden" | "pinned";
     libraryId: string;
@@ -2950,6 +2959,39 @@ export default function Home() {
             config: {
               ...existing.config,
               newPerDay: Math.max(0, Math.floor(next || 0)),
+            },
+          },
+        };
+      });
+
+      const ov = await getDeckOverview({ libraryId, deckId });
+      setDeckOverviews((prev) => ({ ...prev, [`${libraryId}:${deckId}`]: ov }));
+
+      if (reviewRef?.libraryId === libraryId && reviewRef.deckId === deckId) {
+        setReviewOverview(ov);
+        const cfg = await getDeckConfig({ libraryId, deckId });
+        setReviewDeckConfig(cfg);
+      }
+    },
+    [reviewRef]
+  );
+
+  const commitReviewsPerDay = useCallback(
+    async (libraryId: string, deckId: number, raw: string) => {
+      const next = Number(raw);
+      await setDeckReviewsPerDay({ libraryId, deckId }, next);
+
+      setDeckOverviews((prev) => {
+        const key = `${libraryId}:${deckId}`;
+        const existing = prev[key];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [key]: {
+            ...existing,
+            config: {
+              ...existing.config,
+              reviewsPerDay: Math.max(0, Math.floor(next || 0)),
             },
           },
         };
@@ -3127,40 +3169,19 @@ export default function Home() {
   useEffect(() => {
     if (!openDeckMenu) return;
 
-    const menu = openDeckMenu;
-
-    function maybeSaveNewPerDay() {
-      if (!editingNewPerDay) return;
-      if (
-        editingNewPerDay.libraryId === menu.libraryId &&
-        editingNewPerDay.deckId === menu.deckId
-      ) {
-        void commitNewPerDay(
-          editingNewPerDay.libraryId,
-          editingNewPerDay.deckId,
-          editingNewPerDay.value
-        );
-        setEditingNewPerDay(null);
-      }
-    }
-
     function onPointerDown(e: PointerEvent) {
       const target = e.target;
       if (!(target instanceof Element)) {
-        maybeSaveNewPerDay();
         setOpenDeckMenu(null);
         return;
       }
-
       if (target.closest('[data-deck-menu-root="true"]')) return;
-
-      maybeSaveNewPerDay();
       setOpenDeckMenu(null);
     }
 
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [openDeckMenu, editingNewPerDay, commitNewPerDay]);
+  }, [openDeckMenu]);
 
   useEffect(() => {
     if (libraries.length === 0) return;
@@ -4538,9 +4559,6 @@ export default function Home() {
                           editingDeck?.libraryId === lib.id &&
                           editingDeck.deckId === d.id;
 
-                        const isEditingNewPerDay =
-                          editingNewPerDay?.libraryId === lib.id &&
-                          editingNewPerDay.deckId === d.id;
 
                         return (
                           <div
@@ -4643,22 +4661,9 @@ export default function Home() {
                                 title="Settings"
                                 onClick={() => {
                                   if (menuOpen) {
-                                    if (
-                                      editingNewPerDay &&
-                                      editingNewPerDay.libraryId === lib.id &&
-                                      editingNewPerDay.deckId === d.id
-                                    ) {
-                                      void commitNewPerDay(
-                                        editingNewPerDay.libraryId,
-                                        editingNewPerDay.deckId,
-                                        editingNewPerDay.value
-                                      );
-                                      setEditingNewPerDay(null);
-                                    }
                                     setOpenDeckMenu(null);
                                     return;
                                   }
-
                                   setOpenDeckMenu({ libraryId: lib.id, deckId: d.id });
                                 }}
                               >
@@ -4682,69 +4687,37 @@ export default function Home() {
                                     Rename
                                   </button>
 
-                                  <div className="px-3 py-2">
-                                    <div className="text-xs text-foreground/70">New/day</div>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      inputMode="numeric"
-                                      value={
-                                        isEditingNewPerDay
-                                          ? editingNewPerDay.value
-                                          : String(overview?.config.newPerDay ?? 10)
-                                      }
-                                      onFocus={() => {
-                                        setEditingNewPerDay({
-                                          libraryId: lib.id,
-                                          deckId: d.id,
-                                          value: String(overview?.config.newPerDay ?? 10),
-                                        });
-                                      }}
-                                      onChange={(e) => {
-                                        setEditingNewPerDay({
-                                          libraryId: lib.id,
-                                          deckId: d.id,
-                                          value: e.target.value,
-                                        });
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key !== "Enter") return;
-                                        const raw = e.currentTarget.value;
-                                        void (async () => {
-                                          await commitNewPerDay(lib.id, d.id, raw);
-                                          setEditingNewPerDay(null);
-                                        })();
-                                      }}
-                                      onBlur={() => {
-                                        const raw = isEditingNewPerDay
-                                          ? editingNewPerDay.value
-                                          : String(overview?.config.newPerDay ?? 10);
-                                        void (async () => {
-                                          await commitNewPerDay(lib.id, d.id, raw);
-                                          setEditingNewPerDay(null);
-                                        })();
-                                      }}
-                                      className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
-                                    />
+                                  <button
+                                    type="button"
+                                    className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-foreground/5"
+                                    onClick={() => {
+                                      setLimitsModal({
+                                        libraryId: lib.id,
+                                        deckId: d.id,
+                                        newPerDay: String(overview?.config.newPerDay ?? 10),
+                                        reviewsPerDay: String(overview?.config.reviewsPerDay ?? 200),
+                                      });
+                                      setOpenDeckMenu(null);
+                                    }}
+                                  >
+                                    Edit limits
+                                  </button>
 
-                                    <button
-                                      type="button"
-                                      className="mt-2 w-full rounded-lg border border-foreground/15 px-3 py-2 text-sm hover:bg-foreground/5"
-                                      onClick={() => {
-                                        const raw = isEditingNewPerDay
-                                          ? editingNewPerDay.value
-                                          : String(overview?.config.newPerDay ?? 10);
-                                        void (async () => {
-                                          await commitNewPerDay(lib.id, d.id, raw);
-                                          setEditingNewPerDay(null);
-                                          setOpenDeckMenu(null);
-                                        })();
-                                      }}
-                                    >
-                                      Save
-                                    </button>
-                                  </div>
+                                  
 
+                                  <button
+                                    type="button"
+                                    className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-foreground/5"
+                                    onClick={() => {
+                                      const current = (overview?.config.answerStyles ?? [
+                                        "normal", "write", "multiple-choice", "reverse", "match",
+                                      ]) as ReviewAnswerStyle[];
+                                      setCardTypesModal({ libraryId: lib.id, deckId: d.id, styles: current });
+                                      setOpenDeckMenu(null);
+                                    }}
+                                  >
+                                    Edit type of cards
+                                  </button>
                                   <div className="px-3 py-2">
                                     <label className="flex items-center justify-between gap-3 text-xs text-foreground/70">
                                       <span>Card info open</span>
@@ -4762,54 +4735,7 @@ export default function Home() {
                                       />
                                     </label>
                                   </div>
-
-                                  <div className="px-3 py-2">
-                                    <div className="text-xs text-foreground/70">Type of cards</div>
-                                    {(
-                                      [
-                                        { id: "normal" as const, label: "Normal" },
-                                        { id: "write" as const, label: "Write" },
-                                        { id: "multiple-choice" as const, label: "Multiple-choice" },
-                                        { id: "reverse" as const, label: "Reverse" },
-                                        { id: "match" as const, label: "Match" },
-                                      ] satisfies Array<{ id: ReviewAnswerStyle; label: string }>
-                                    ).map((opt) => {
-                                      const currentStyles = (overview?.config.answerStyles ?? [
-                                        "normal",
-                                        "write",
-                                        "multiple-choice",
-                                        "reverse",
-                                        "match",
-                                      ]) as ReviewAnswerStyle[];
-                                      const checked = currentStyles.includes(opt.id);
-
-                                      return (
-                                        <label
-                                          key={opt.id}
-                                          className="mt-2 flex items-center justify-between gap-3 text-xs text-foreground/70"
-                                        >
-                                          <span>{opt.label}</span>
-                                          <input
-                                            type="checkbox"
-                                            className="h-4 w-4"
-                                            checked={checked}
-                                            onChange={(e) => {
-                                              const wants = e.currentTarget.checked;
-                                              const next = (() => {
-                                                const base = new Set<ReviewAnswerStyle>(currentStyles);
-                                                if (wants) base.add(opt.id);
-                                                else base.delete(opt.id);
-                                                const arr = Array.from(base);
-                                                return arr.length > 0 ? arr : (["normal"] as ReviewAnswerStyle[]);
-                                              })();
-                                              void commitDeckAnswerStyles(lib.id, d.id, next);
-                                            }}
-                                          />
-                                        </label>
-                                      );
-                                    })}
-                                  </div>
-
+                                  
                                   <div className="px-3 py-2">
                                     <div className="text-xs text-foreground/70">Write language</div>
                                     <select
@@ -5692,6 +5618,150 @@ export default function Home() {
           </main>
         ) : null}
       </div>
+
+      {cardTypesModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setCardTypesModal(null); }}
+        >
+          <div className="w-full max-w-xs rounded-2xl bg-background p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold">Type of cards</h2>
+              <button
+                type="button"
+                onClick={() => setCardTypesModal(null)}
+                className="rounded-full p-1 text-foreground/50 hover:bg-foreground/10"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            {(cardTypesModal.styles.length < 5 || cardTypesModal.styles.length > 1) && (
+              <div className="mb-3 flex gap-2">
+                {cardTypesModal.styles.length < 5 && (
+                  <button
+                    type="button"
+                    className="flex-1 rounded-lg border border-foreground/15 py-1.5 text-xs hover:bg-foreground/5"
+                    onClick={() => setCardTypesModal((m) => m ? { ...m, styles: ["normal", "write", "multiple-choice", "reverse", "match"] } : m)}
+                  >
+                    Select all
+                  </button>
+                )}
+                {cardTypesModal.styles.length > 1 && (
+                  <button
+                    type="button"
+                    className="flex-1 rounded-lg border border-foreground/15 py-1.5 text-xs hover:bg-foreground/5"
+                    onClick={() => setCardTypesModal((m) => m ? { ...m, styles: ["normal"] } : m)}
+                  >
+                    Deselect all
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="space-y-3">
+              {(
+                [
+                  { id: "normal" as const, label: "Normal" },
+                  { id: "write" as const, label: "Write" },
+                  { id: "multiple-choice" as const, label: "Multiple-choice" },
+                  { id: "reverse" as const, label: "Reverse" },
+                  { id: "match" as const, label: "Match" },
+                ] satisfies Array<{ id: ReviewAnswerStyle; label: string }>
+              ).map((opt) => {
+                const checked = cardTypesModal.styles.includes(opt.id);
+                return (
+                  <label key={opt.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span>{opt.label}</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={checked}
+                      onChange={(e) => {
+                        const wants = e.currentTarget.checked;
+                        setCardTypesModal((m) => {
+                          if (!m) return m;
+                          const base = new Set<ReviewAnswerStyle>(m.styles);
+                          if (wants) base.add(opt.id);
+                          else base.delete(opt.id);
+                          const next = Array.from(base);
+                          return { ...m, styles: next.length > 0 ? next : ["normal"] };
+                        });
+                      }}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              className="mt-5 h-11 w-full rounded-full bg-foreground text-sm font-medium text-background hover:opacity-90"
+              onClick={() => {
+                void commitDeckAnswerStyles(cardTypesModal.libraryId, cardTypesModal.deckId, cardTypesModal.styles);
+                setCardTypesModal(null);
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {limitsModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setLimitsModal(null); }}
+        >
+          <div className="w-full max-w-xs rounded-2xl bg-background p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold">Daily limits</h2>
+              <button
+                type="button"
+                onClick={() => setLimitsModal(null)}
+                className="rounded-full p-1 text-foreground/50 hover:bg-foreground/10"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-foreground/70">New cards / day</label>
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={limitsModal.newPerDay}
+                  onChange={(e) => setLimitsModal((m) => m ? { ...m, newPerDay: e.target.value } : m)}
+                  className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-foreground/70">Review cards / day</label>
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={limitsModal.reviewsPerDay}
+                  onChange={(e) => setLimitsModal((m) => m ? { ...m, reviewsPerDay: e.target.value } : m)}
+                  className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              className="mt-5 h-11 w-full rounded-full bg-foreground text-sm font-medium text-background hover:opacity-90"
+              onClick={() => {
+                const { libraryId, deckId, newPerDay, reviewsPerDay } = limitsModal;
+                void commitNewPerDay(libraryId, deckId, newPerDay);
+                void commitReviewsPerDay(libraryId, deckId, reviewsPerDay);
+                setLimitsModal(null);
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {showCountersInfo ? (
         <div
