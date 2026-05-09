@@ -1134,6 +1134,10 @@ export default function Home() {
   const [reviewAnswerStyle, setReviewAnswerStyle] = useState<ReviewAnswerStyle>("normal");
   const [writePicked, setWritePicked] = useState<Array<{ index: number; ch: string }>>([]);
   const [writeOutcome, setWriteOutcome] = useState<"correct" | "wrong" | null>(null);
+  type WriteDrag = { fromIdx: number; ch: string; x: number; y: number; dropIdx: number };
+  const [writeDrag, setWriteDrag] = useState<WriteDrag | null>(null);
+  const writeDragRef = useRef<WriteDrag | null>(null);
+  const writePickedRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [mcOutcome, setMcOutcome] = useState<"correct" | "wrong" | null>(null);
   const [mcSelectedIndex, setMcSelectedIndex] = useState<number | null>(null);
   const [reverseOutcome, setReverseOutcome] = useState<"correct" | "wrong" | null>(null);
@@ -4042,6 +4046,8 @@ export default function Home() {
     // Reset all answer-style state when the card or style changes.
     setWritePicked([]);
     setWriteOutcome(null);
+    writeDragRef.current = null;
+    setWriteDrag(null);
     setMcOutcome(null);
     setMcSelectedIndex(null);
     setReverseOutcome(null);
@@ -4110,12 +4116,69 @@ export default function Home() {
       if (e.key !== "Backspace") return;
       if (writePicked.length === 0) return;
       e.preventDefault();
+      writeDragRef.current = null;
+      setWriteDrag(null);
       setWritePicked((prev) => prev.slice(0, -1));
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mode, reviewAnswerStyle, currentId, current, showAnswer, writePicked.length]);
+
+  // Drag-and-drop reordering for write mode picked letters.
+  useEffect(() => {
+    if (!writeDrag) return;
+
+    const onMove = (e: PointerEvent) => {
+      const cur = writeDragRef.current;
+      if (!cur) return;
+      const x = e.clientX;
+      const y = e.clientY;
+
+      const refs = writePickedRefs.current;
+      let dropIdx = refs.length;
+      let bestDist = Infinity;
+      for (let i = 0; i < refs.length; i++) {
+        const el = refs[i];
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.hypot(x - cx, y - cy);
+        if (dist < bestDist) {
+          bestDist = dist;
+          dropIdx = x <= cx ? i : i + 1;
+        }
+      }
+
+      const next = { ...cur, x, y, dropIdx };
+      writeDragRef.current = next;
+      setWriteDrag(next);
+    };
+
+    const onUp = () => {
+      const cur = writeDragRef.current;
+      if (!cur) return;
+      const { fromIdx, dropIdx } = cur;
+      setWritePicked((prev) => {
+        if (dropIdx === fromIdx || dropIdx === fromIdx + 1) return prev;
+        const moving = prev[fromIdx];
+        const without = prev.filter((_, i) => i !== fromIdx);
+        const adj = dropIdx > fromIdx ? dropIdx - 1 : dropIdx;
+        return [...without.slice(0, adj), moving, ...without.slice(adj)];
+      });
+      writeDragRef.current = null;
+      setWriteDrag(null);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writeDrag !== null]);
 
   // Write evaluation happens only on explicit Submit.
 
@@ -4965,32 +5028,57 @@ export default function Home() {
                                 }`}
                               >
                                 {writePicked.length > 0 ? (
-                                  <div className="flex flex-wrap justify-center gap-2">
-                                    {writePicked.map((p, pickedIdx) => (
-                                      <button
-                                        key={`picked-${currentId ?? ""}-${pickedIdx}-${p.index}-${p.ch}`}
-                                        type="button"
-                                        disabled={reviewBusy || writeOutcome != null}
-                                        onClick={() => {
-                                          if (reviewBusy) return;
-                                          if (writeOutcome != null) return;
-                                          setWritePicked((prev) =>
-                                            prev.filter((_, i) => i !== pickedIdx)
-                                          );
-                                        }}
-                                        title="Remove"
-                                        aria-label={p.ch === " " ? "Remove space" : `Remove ${p.ch}`}
-                                        className={`inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border px-2 text-lg hover:bg-foreground/10 disabled:opacity-60 sm:h-12 sm:min-w-12 sm:px-3 sm:text-2xl ${
-                                          writeOutcome == null
-                                            ? "border-foreground/15 bg-foreground/5"
-                                            : writeOutcome === "correct"
-                                              ? "border-green-500 bg-green-500/10 text-green-500"
-                                              : "border-red-500 bg-red-500/10 text-red-500"
-                                        }`}
-                                      >
-                                        {p.ch === " " ? "␣" : p.ch}
-                                      </button>
-                                    ))}
+                                  <div
+                                    className="flex flex-wrap justify-center gap-2"
+                                    style={{ touchAction: "none" }}
+                                  >
+                                    {writePicked.map((p, pickedIdx) => {
+                                      const isDragging = writeDrag?.fromIdx === pickedIdx;
+                                      const showDropBefore =
+                                        writeDrag !== null &&
+                                        writeDrag.dropIdx === pickedIdx &&
+                                        !isDragging &&
+                                        writeDrag.dropIdx !== writeDrag.fromIdx + 1;
+                                      return (
+                                        <span key={`picked-${currentId ?? ""}-${pickedIdx}-${p.index}-${p.ch}`} className="flex items-center">
+                                          {showDropBefore && (
+                                            <span className="mr-1 h-10 w-1 rounded-full bg-blue-500 sm:h-12" />
+                                          )}
+                                          <button
+                                            ref={(el) => { writePickedRefs.current[pickedIdx] = el; }}
+                                            type="button"
+                                            disabled={reviewBusy || writeOutcome != null}
+                                            onPointerDown={(e) => {
+                                              if (reviewBusy || writeOutcome != null) return;
+                                              e.preventDefault();
+                                              const state = { fromIdx: pickedIdx, ch: p.ch, x: e.clientX, y: e.clientY, dropIdx: pickedIdx };
+                                              writeDragRef.current = state;
+                                              setWriteDrag(state);
+                                            }}
+                                            aria-label={p.ch === " " ? "space" : p.ch}
+                                            className={`inline-flex h-10 min-w-10 cursor-grab items-center justify-center rounded-2xl border px-2 text-lg transition-opacity active:cursor-grabbing disabled:opacity-60 sm:h-12 sm:min-w-12 sm:px-3 sm:text-2xl ${
+                                              writeOutcome != null
+                                                ? writeOutcome === "correct"
+                                                  ? "border-green-500 bg-green-500/10 text-green-500"
+                                                  : "border-red-500 bg-red-500/10 text-red-500"
+                                                : isDragging
+                                                  ? "border-blue-500 bg-blue-500/10 opacity-40"
+                                                  : "border-foreground/15 bg-foreground/5"
+                                            }`}
+                                          >
+                                            {p.ch === " " ? "␣" : p.ch}
+                                          </button>
+                                        </span>
+                                      );
+                                    })}
+                                    {writeDrag !== null &&
+                                      writeDrag.dropIdx === writePicked.length &&
+                                      writeDrag.dropIdx !== writeDrag.fromIdx &&
+                                      writeDrag.dropIdx !== writeDrag.fromIdx + 1 && (
+                                        <span className="flex items-center">
+                                          <span className="h-10 w-1 rounded-full bg-blue-500 sm:h-12" />
+                                        </span>
+                                    )}
                                   </div>
                                 ) : (
                                   <span className="text-foreground/30">…</span>
@@ -4998,7 +5086,36 @@ export default function Home() {
                               </div>
                             </div>
 
-                            <div className="mt-3 flex justify-center">
+                            {writeDrag !== null && (
+                              <div
+                                style={{
+                                  position: "fixed",
+                                  left: writeDrag.x - 24,
+                                  top: writeDrag.y - 24,
+                                  zIndex: 9999,
+                                  pointerEvents: "none",
+                                }}
+                                className="flex h-12 min-w-12 items-center justify-center rounded-2xl border-2 border-blue-500 bg-blue-500/20 px-2 text-lg font-semibold text-blue-500 shadow-lg"
+                              >
+                                {writeDrag.ch === " " ? "␣" : writeDrag.ch}
+                              </div>
+                            )}
+
+                            <div className="mt-3 flex justify-center gap-3">
+                              {writePicked.length > 0 && writeOutcome == null && (
+                                <button
+                                  type="button"
+                                  className="h-11 rounded-full border border-foreground/20 px-5 text-sm font-medium text-foreground/60 hover:bg-foreground/5 disabled:opacity-50"
+                                  disabled={reviewBusy}
+                                  onClick={() => {
+                                    writeDragRef.current = null;
+                                    setWriteDrag(null);
+                                    setWritePicked([]);
+                                  }}
+                                >
+                                  Clear
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 className="h-11 rounded-full bg-foreground px-6 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
@@ -5012,13 +5129,13 @@ export default function Home() {
                                   if (!writeIsAvailable) return;
                                   if (writePicked.length === 0) return;
                                   if (writeOutcome != null) return;
-
+                                  writeDragRef.current = null;
+                                  setWriteDrag(null);
                                   const expected = writeExpectedChars.join("");
                                   const answer = writePicked.map((p) => p.ch).join("");
                                   const ok =
                                     answer.normalize("NFKC").toLowerCase() ===
                                     expected.normalize("NFKC").toLowerCase();
-
                                   setWriteOutcome(ok ? "correct" : "wrong");
                                 }}
                               >
