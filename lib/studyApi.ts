@@ -300,6 +300,7 @@ export async function upsertImportedDeck(libraryId: string, imported: ImportedDe
 
     const decks: DeckEntity[] = imported.decks.map((d, idx) => {
       const prev = existingDecks[idx] ?? null;
+      const prevAny = prev as Record<string, unknown> | null;
 
       return {
         libraryId,
@@ -309,10 +310,19 @@ export async function upsertImportedDeck(libraryId: string, imported: ImportedDe
         reviewsPerDay: prev?.reviewsPerDay ?? DEFAULT_DECK_CONFIG.reviewsPerDay,
         cardInfoOpenByDefault:
           prev?.cardInfoOpenByDefault ?? DEFAULT_DECK_CONFIG.cardInfoOpenByDefault,
-        answerStyles: sanitizeAnswerStyles((prev as { answerStyles?: unknown } | null)?.answerStyles),
-        writeLanguage: sanitizeWriteLanguage((prev as { writeLanguage?: unknown } | null)?.writeLanguage),
+        answerStyles: sanitizeAnswerStyles(prevAny?.answerStyles),
+        writeLanguage: sanitizeWriteLanguage(prevAny?.writeLanguage),
+        hiddenFieldLabels: Array.isArray(prevAny?.hiddenFieldLabels)
+          ? (prevAny.hiddenFieldLabels as string[])
+          : [],
+        pinnedBackFieldLabels: Array.isArray(prevAny?.pinnedBackFieldLabels)
+          ? (prevAny.pinnedBackFieldLabels as string[])
+          : [],
         createdAt: prev?.createdAt ?? now,
-        updatedAt: now,
+        // Preserve existing updatedAt so we don't overwrite user-configured settings
+        // with a newer timestamp that would cause the pull to clobber other devices.
+        // New decks get 0 so defaults aren't pushed until the user explicitly changes something.
+        updatedAt: prev?.updatedAt ?? 0,
       };
     });
 
