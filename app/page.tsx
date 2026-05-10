@@ -62,6 +62,7 @@ type ProgressPullResponse = {
     reviewsPerDay: number;
     cardInfoOpenByDefault?: boolean;
     writeLanguage?: "en" | "fr" | "es";
+    answerStyles?: string[];
     hiddenFieldLabels?: string[];
     pinnedBackFieldLabels?: string[];
     updatedAt: number;
@@ -2586,6 +2587,9 @@ export default function Home() {
                 reviewsPerDay: d.reviewsPerDay,
                 cardInfoOpenByDefault: Boolean((d as { cardInfoOpenByDefault?: unknown }).cardInfoOpenByDefault),
                 writeLanguage: sanitizeWriteLanguage((d as { writeLanguage?: unknown }).writeLanguage),
+                answerStyles: Array.isArray((d as { answerStyles?: unknown }).answerStyles)
+                  ? (d as { answerStyles: string[] }).answerStyles
+                  : DEFAULT_DECK_CONFIG.answerStyles,
                 hiddenFieldLabels: Array.isArray((d as { hiddenFieldLabels?: unknown }).hiddenFieldLabels)
                   ? (d as { hiddenFieldLabels: string[] }).hiddenFieldLabels
                   : [],
@@ -2712,10 +2716,16 @@ export default function Home() {
                 reviewsPerDay: Math.max(0, Math.floor(Number(cfg.reviewsPerDay) || 0)),
                 cardInfoOpenByDefault: Boolean((cfg as { cardInfoOpenByDefault?: unknown }).cardInfoOpenByDefault),
                 writeLanguage: sanitizeWriteLanguage((cfg as { writeLanguage?: unknown }).writeLanguage),
-                answerStyles:
-                  Array.isArray(local?.answerStyles) && local.answerStyles.length > 0
-                    ? local.answerStyles
-                    : DEFAULT_DECK_CONFIG.answerStyles,
+                answerStyles: (() => {
+                  const remote = (cfg as { answerStyles?: unknown }).answerStyles;
+                  const allowed: ReviewAnswerStyle[] = ["normal", "write", "multiple-choice", "reverse", "match"];
+                  if (Array.isArray(remote) && remote.length > 0) {
+                    const filtered = remote.filter((x): x is ReviewAnswerStyle => allowed.includes(x as ReviewAnswerStyle));
+                    if (filtered.length > 0) return filtered;
+                  }
+                  if (Array.isArray(local?.answerStyles) && local.answerStyles.length > 0) return local.answerStyles;
+                  return DEFAULT_DECK_CONFIG.answerStyles;
+                })(),
                 hiddenFieldLabels: Array.isArray((cfg as { hiddenFieldLabels?: unknown }).hiddenFieldLabels)
                   ? (cfg as { hiddenFieldLabels: string[] }).hiddenFieldLabels
                   : (local?.hiddenFieldLabels ?? []),

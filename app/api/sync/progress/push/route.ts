@@ -66,6 +66,15 @@ type ReviewLogPayload = {
   nextLapses: number;
 };
 
+const ALLOWED_ANSWER_STYLES = ["normal", "write", "multiple-choice", "reverse", "match"] as const;
+type AnswerStyle = typeof ALLOWED_ANSWER_STYLES[number];
+
+function sanitizeAnswerStyles(raw: unknown): AnswerStyle[] {
+  if (!Array.isArray(raw)) return [...ALLOWED_ANSWER_STYLES];
+  const filtered = raw.filter((x): x is AnswerStyle => ALLOWED_ANSWER_STYLES.includes(x as AnswerStyle));
+  return filtered.length > 0 ? filtered : [...ALLOWED_ANSWER_STYLES];
+}
+
 type DeckConfigPayload = {
   libraryId: string;
   deckId: number;
@@ -73,6 +82,7 @@ type DeckConfigPayload = {
   reviewsPerDay: number;
   cardInfoOpenByDefault?: boolean;
   writeLanguage?: "en" | "fr" | "es";
+  answerStyles?: string[];
   hiddenFieldLabels?: string[];
   pinnedBackFieldLabels?: string[];
   updatedAt: number;
@@ -174,6 +184,7 @@ export async function POST(req: NextRequest) {
       hiddenFieldLabels: Array.isArray((d as { hiddenFieldLabels?: unknown }).hiddenFieldLabels)
         ? ((d as { hiddenFieldLabels: unknown[] }).hiddenFieldLabels).filter((l) => typeof l === "string") as string[]
         : [],
+      answerStyles: sanitizeAnswerStyles((d as { answerStyles?: unknown }).answerStyles),
       pinnedBackFieldLabels: Array.isArray((d as { pinnedBackFieldLabels?: unknown }).pinnedBackFieldLabels)
         ? ((d as { pinnedBackFieldLabels: unknown[] }).pinnedBackFieldLabels).filter((l) => typeof l === "string") as string[]
         : [],
@@ -295,6 +306,7 @@ export async function POST(req: NextRequest) {
             reviewsPerDay: d.reviewsPerDay,
             cardInfoOpenByDefault: Boolean(d.cardInfoOpenByDefault),
             writeLanguage: sanitizeWriteLanguage(d.writeLanguage),
+            answerStyles: d.answerStyles,
             hiddenFieldLabels: d.hiddenFieldLabels,
             pinnedBackFieldLabels: d.pinnedBackFieldLabels,
             updatedAt: d.updatedAt,

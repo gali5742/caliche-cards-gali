@@ -215,12 +215,11 @@ export async function setDeckAnswerStyles(ref: DeckRef, styles: ReviewAnswerStyl
   const next = sanitizeAnswerStyles(styles);
   const now = Date.now();
 
-  // Local-only UI preference: intentionally do NOT bump updatedAt.
   const updated = await db.decks.update([ref.libraryId, ref.deckId], {
     answerStyles: next,
+    updatedAt: now,
   });
 
-  // If the deck row doesn't exist yet (race with initial seeding), create it.
   if (updated === 0) {
     await db.decks.put({
       libraryId: ref.libraryId,
@@ -232,7 +231,7 @@ export async function setDeckAnswerStyles(ref: DeckRef, styles: ReviewAnswerStyl
       answerStyles: next,
       writeLanguage: DEFAULT_DECK_CONFIG.writeLanguage,
       createdAt: now,
-      updatedAt: 0,
+      updatedAt: now,
     });
   }
 }
