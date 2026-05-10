@@ -627,23 +627,31 @@ function extractMultipleChoiceAnswerFromCard(card: {
     return extractMultipleChoiceAnswerFromBackHtml(pinned[0].valueHtml);
   }
 
-  // No pinned field: scan backHtml line by line and return the first line that
-  // is not empty and not identical to the card front. Many Anki templates
-  // repeat the front word at the top of the back, so we must skip it.
   const frontText = htmlToText(card.frontHtml).replace(/\[sound:[^\]]+\]/gi, "").trim().toLowerCase();
+
+  // Scan the rendered back HTML line by line — this reflects what the user
+  // actually sees on the card back. Two-pass approach:
+  //   Pass 1: skip lines that ARE the front word OR contain it as a whole word
+  //           (catches example sentences like "I'll let you decide…").
+  //   Pass 2: if pass 1 found nothing, relax to only the exact-match skip.
+  const frontWordRe = new RegExp(`\\b${escapeRegExp(frontText)}\\b`, "iu");
   const lines = htmlToTextWithBreaks(card.backHtml)
     .split("\n")
     .map((s) => s.replace(/\[sound:[^\]]+\]/gi, "").trim())
     .filter(Boolean);
 
-  for (const line of lines) {
-    if (line.toLowerCase() === frontText) continue;
-    const beforeSep = line.split(/\s*(?:•|\||;|\/|·)\s*/u)[0]?.trim();
-    const answer = String(beforeSep ?? line).replace(/\s+/gu, " ").trim();
-    if (answer && answer.toLowerCase() !== frontText) return answer;
-  }
+  const pickFromLines = (strict: boolean): string | null => {
+    for (const line of lines) {
+      if (line.toLowerCase() === frontText) continue;
+      if (strict && frontWordRe.test(line)) continue;
+      const beforeSep = line.split(/\s*(?:•|\||;|\/|·)\s*/u)[0]?.trim();
+      const answer = String(beforeSep ?? line).replace(/\s+/gu, " ").trim();
+      if (answer && answer.toLowerCase() !== frontText) return answer;
+    }
+    return null;
+  };
 
-  return null;
+  return pickFromLines(true) ?? pickFromLines(false);
 }
 
 function pickWriteTargetFromCard(card: {
