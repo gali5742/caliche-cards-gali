@@ -71,6 +71,8 @@ export type DeckEntity = {
   // UI preference (not used by scheduler).
   pinnedBackFieldLabels?: string[];
 
+  easeFactor?: number;
+
   createdAt: number;
   updatedAt: number;
 };

@@ -85,6 +85,7 @@ type DeckConfigPayload = {
   answerStyles?: string[];
   hiddenFieldLabels?: string[];
   pinnedBackFieldLabels?: string[];
+  easeFactor?: number;
   updatedAt: number;
 };
 
@@ -188,6 +189,7 @@ export async function POST(req: NextRequest) {
       pinnedBackFieldLabels: Array.isArray((d as { pinnedBackFieldLabels?: unknown }).pinnedBackFieldLabels)
         ? ((d as { pinnedBackFieldLabels: unknown[] }).pinnedBackFieldLabels).filter((l) => typeof l === "string") as string[]
         : [],
+      easeFactor: (() => { const v = Number((d as { easeFactor?: unknown }).easeFactor); return Number.isFinite(v) && v > 0 ? v : undefined; })(),
       updatedAt: d.updatedAt,
     }));
 
@@ -309,6 +311,7 @@ export async function POST(req: NextRequest) {
             answerStyles: d.answerStyles,
             hiddenFieldLabels: d.hiddenFieldLabels,
             pinnedBackFieldLabels: d.pinnedBackFieldLabels,
+            ...(d.easeFactor !== undefined ? { easeFactor: d.easeFactor } : {}),
             updatedAt: d.updatedAt,
             uploadedAt: now,
           },

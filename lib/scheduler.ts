@@ -13,7 +13,7 @@ export const DEFAULT_DECK_CONFIG: DeckConfig = {
   learnStepsMs: [10 * 60 * 1000, 1 * DAY_MS],
   relearnStepsMs: [10 * 60 * 1000],
   graduatingIntervalDays: 3,
-  easeFactor: 2.5,
+  easeFactor: 2.0,
   lapseIntervalMultiplier: 0.5,
   learnFailDelayMs: 60 * 1000,
   minIntervalDays: 1,

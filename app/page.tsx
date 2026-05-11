@@ -31,6 +31,7 @@ import {
   resetDeckProgress,
   setDeckAnswerStyles,
   setDeckCardInfoOpenByDefault,
+  setDeckEaseFactor,
   setDeckHiddenFieldLabels,
   setDeckNewPerDay,
   setDeckReviewsPerDay,
@@ -2746,6 +2747,7 @@ export default function Home() {
                 pinnedBackFieldLabels: Array.isArray((cfg as { pinnedBackFieldLabels?: unknown }).pinnedBackFieldLabels)
                   ? (cfg as { pinnedBackFieldLabels: string[] }).pinnedBackFieldLabels
                   : (local?.pinnedBackFieldLabels ?? []),
+                easeFactor: (() => { const v = Number((cfg as { easeFactor?: unknown }).easeFactor); return Number.isFinite(v) && v > 0 ? v : (local?.easeFactor ?? undefined); })(),
                 createdAt: local?.createdAt ?? updatedAt,
                 updatedAt,
               });
@@ -2953,6 +2955,8 @@ export default function Home() {
     deckId: number;
     newPerDay: string;
     reviewsPerDay: string;
+    easeFactor: string;
+    originalEaseFactor: string;
   } | null>(null);
   const [cardTypesModal, setCardTypesModal] = useState<{
     libraryId: string;
@@ -3064,6 +3068,36 @@ export default function Home() {
               ...existing.config,
               cardInfoOpenByDefault: Boolean(next),
             },
+          },
+        };
+      });
+
+      const ov = await getDeckOverview({ libraryId, deckId });
+      setDeckOverviews((prev) => ({ ...prev, [`${libraryId}:${deckId}`]: ov }));
+
+      if (reviewRef?.libraryId === libraryId && reviewRef.deckId === deckId) {
+        setReviewOverview(ov);
+        const cfg = await getDeckConfig({ libraryId, deckId });
+        setReviewDeckConfig(cfg);
+      }
+    },
+    [reviewRef]
+  );
+
+  const commitDeckEaseFactor = useCallback(
+    async (libraryId: string, deckId: number, raw: string) => {
+      const next = Number(raw);
+      await setDeckEaseFactor({ libraryId, deckId }, next);
+
+      setDeckOverviews((prev) => {
+        const key = `${libraryId}:${deckId}`;
+        const existing = prev[key];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [key]: {
+            ...existing,
+            config: { ...existing.config, easeFactor: Number.isFinite(next) && next > 0 ? next : DEFAULT_DECK_CONFIG.easeFactor },
           },
         };
       });
@@ -4769,6 +4803,8 @@ export default function Home() {
                                         deckId: d.id,
                                         newPerDay: String(overview?.config.newPerDay ?? 10),
                                         reviewsPerDay: String(overview?.config.reviewsPerDay ?? 200),
+                                        easeFactor: String(overview?.config.easeFactor ?? 2.0),
+                                        originalEaseFactor: String(overview?.config.easeFactor ?? 2.0),
                                       });
                                       setOpenDeckMenu(null);
                                     }}
@@ -5850,15 +5886,62 @@ export default function Home() {
                   className="mt-1 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm"
                 />
               </div>
+              <div>
+                <label className="text-xs text-foreground/70">Ease factor (interval multiplier)</label>
+                <div className="mt-1 flex items-center gap-2">
+                  {[1.3, 1.5, 2.0, 2.5, 3.0].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setLimitsModal((m) => m ? { ...m, easeFactor: String(v) } : m)}
+                      className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${Number(limitsModal.easeFactor) === v ? "border-foreground bg-foreground text-background" : "border-foreground/15 bg-background text-foreground hover:bg-foreground/5"}`}
+                    >
+                      {v}×
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <button
               type="button"
               className="mt-5 h-11 w-full rounded-full bg-foreground text-sm font-medium text-background hover:opacity-90"
               onClick={() => {
-                const { libraryId, deckId, newPerDay, reviewsPerDay } = limitsModal;
+                const { libraryId, deckId, newPerDay, reviewsPerDay, easeFactor, originalEaseFactor } = limitsModal;
                 void commitNewPerDay(libraryId, deckId, newPerDay);
                 void commitReviewsPerDay(libraryId, deckId, reviewsPerDay);
+                void commitDeckEaseFactor(libraryId, deckId, easeFactor);
                 setLimitsModal(null);
+
+                const newFactor = Number(easeFactor);
+                const oldFactor = Number(originalEaseFactor);
+                if (newFactor !== oldFactor && Number.isFinite(newFactor) && Number.isFinite(oldFactor) && oldFactor > 0) {
+                  void (async () => {
+                    const db = getStudyDb();
+                    const reviewStates = await db.cardStates
+                      .where("[libraryId+deckId+state+due]")
+                      .between([libraryId, deckId, "review", -Infinity], [libraryId, deckId, "review", Infinity])
+                      .toArray();
+                    if (reviewStates.length === 0) return;
+                    const ok = confirm(
+                      `Tienes ${reviewStates.length} cards programadas con el factor anterior (${oldFactor}×).\n\n¿Quieres recalcular sus fechas con el nuevo factor (${newFactor}×)?`
+                    );
+                    if (!ok) return;
+                    const DAY_MS_L = 24 * 60 * 60 * 1000;
+                    const now = Date.now();
+                    const updated = reviewStates
+                      .filter((s) => s.intervalDays > 0)
+                      .map((s) => {
+                        const newInterval = Math.max(1, Math.round(s.intervalDays * (newFactor / oldFactor)));
+                        const base = s.lastReview ?? (s.due - s.intervalDays * DAY_MS_L);
+                        const newDue = new Date(base + newInterval * DAY_MS_L);
+                        newDue.setHours(0, 0, 0, 0);
+                        return { ...s, intervalDays: newInterval, due: newDue.getTime(), updatedAt: now };
+                      });
+                    await db.cardStates.bulkPut(updated);
+                    const ov = await getDeckOverview({ libraryId, deckId });
+                    setDeckOverviews((prev) => ({ ...prev, [`${libraryId}:${deckId}`]: ov }));
+                  })();
+                }
               }}
             >
               Save

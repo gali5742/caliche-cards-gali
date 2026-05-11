@@ -49,7 +49,7 @@ export type DeckOverview = {
   // Number of distinct calendar days (local timezone) with at least one review.
   daysStudied: number;
 
-  config: Pick<DeckConfig, "newPerDay" | "reviewsPerDay" | "cardInfoOpenByDefault" | "answerStyles" | "writeLanguage" | "hiddenFieldLabels" | "pinnedBackFieldLabels">;
+  config: Pick<DeckConfig, "newPerDay" | "reviewsPerDay" | "cardInfoOpenByDefault" | "answerStyles" | "writeLanguage" | "hiddenFieldLabels" | "pinnedBackFieldLabels" | "easeFactor">;
 };
 
 function sanitizeAnswerStyles(raw: unknown): ReviewAnswerStyle[] {
@@ -94,6 +94,7 @@ export async function getDeckConfig(ref: DeckRef): Promise<DeckConfig> {
     writeLanguage: sanitizeWriteLanguage(d.writeLanguage),
     hiddenFieldLabels: Array.isArray(d.hiddenFieldLabels) ? d.hiddenFieldLabels : [],
     pinnedBackFieldLabels: Array.isArray(d.pinnedBackFieldLabels) ? d.pinnedBackFieldLabels : [],
+    easeFactor: typeof d.easeFactor === "number" && Number.isFinite(d.easeFactor) && d.easeFactor > 0 ? d.easeFactor : DEFAULT_DECK_CONFIG.easeFactor,
   };
 }
 
@@ -290,6 +291,33 @@ export async function setDeckPinnedBackFieldLabels(ref: DeckRef, labels: string[
   }
 }
 
+export async function setDeckEaseFactor(ref: DeckRef, easeFactor: number): Promise<void> {
+  const db = getStudyDb();
+  const next = Number.isFinite(easeFactor) && easeFactor > 0 ? easeFactor : DEFAULT_DECK_CONFIG.easeFactor;
+  const now = Date.now();
+
+  const updated = await db.decks.update([ref.libraryId, ref.deckId], {
+    easeFactor: next,
+    updatedAt: now,
+  });
+
+  if (updated === 0) {
+    await db.decks.put({
+      libraryId: ref.libraryId,
+      deckId: ref.deckId,
+      name: "",
+      newPerDay: DEFAULT_DECK_CONFIG.newPerDay,
+      reviewsPerDay: DEFAULT_DECK_CONFIG.reviewsPerDay,
+      cardInfoOpenByDefault: DEFAULT_DECK_CONFIG.cardInfoOpenByDefault,
+      answerStyles: DEFAULT_DECK_CONFIG.answerStyles,
+      writeLanguage: DEFAULT_DECK_CONFIG.writeLanguage,
+      easeFactor: next,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+}
+
 export async function upsertImportedDeck(libraryId: string, imported: ImportedDeck): Promise<void> {
   const db = getStudyDb();
   const now = Date.now();
@@ -318,6 +346,9 @@ export async function upsertImportedDeck(libraryId: string, imported: ImportedDe
         pinnedBackFieldLabels: Array.isArray(prevAny?.pinnedBackFieldLabels)
           ? (prevAny.pinnedBackFieldLabels as string[])
           : [],
+        easeFactor: typeof prevAny?.easeFactor === "number" && Number.isFinite(prevAny.easeFactor) && prevAny.easeFactor > 0
+          ? (prevAny.easeFactor as number)
+          : undefined,
         createdAt: prev?.createdAt ?? now,
         // Preserve existing updatedAt so we don't overwrite user-configured settings
         // with a newer timestamp that would cause the pull to clobber other devices.
@@ -686,6 +717,7 @@ export async function getDeckOverview(ref: DeckRef): Promise<DeckOverview> {
       writeLanguage: cfg.writeLanguage,
       hiddenFieldLabels: cfg.hiddenFieldLabels,
       pinnedBackFieldLabels: cfg.pinnedBackFieldLabels,
+      easeFactor: cfg.easeFactor,
     },
   };
 }
