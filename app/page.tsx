@@ -629,30 +629,31 @@ function extractMultipleChoiceAnswerFromCard(card: {
   }
 
   const frontText = htmlToText(card.frontHtml).replace(/\[sound:[^\]]+\]/gi, "").trim().toLowerCase();
-
-  // Scan the rendered back HTML line by line — this reflects what the user
-  // actually sees on the card back. Two-pass approach:
-  //   Pass 1: skip lines that ARE the front word OR contain it as a whole word
-  //           (catches example sentences like "I'll let you decide…").
-  //   Pass 2: if pass 1 found nothing, relax to only the exact-match skip.
   const frontWordRe = new RegExp(`\\b${escapeRegExp(frontText)}\\b`, "iu");
-  const lines = htmlToTextWithBreaks(card.backHtml)
-    .split("\n")
-    .map((s) => s.replace(/\[sound:[^\]]+\]/gi, "").trim())
-    .filter(Boolean);
 
-  const pickFromLines = (strict: boolean): string | null => {
-    for (const line of lines) {
-      if (line.toLowerCase() === frontText) continue;
-      if (strict && frontWordRe.test(line)) continue;
-      const beforeSep = line.split(/\s*(?:•|\||;|\/|·)\s*/u)[0]?.trim();
-      const answer = String(beforeSep ?? line).replace(/\s+/gu, " ").trim();
+  // Use inferFieldSectionsForHtml — same data source as the card preview modal.
+  // It iterates fieldsHtml in note-type field order with isolated field values,
+  // which is reliable and avoids template HTML artifacts.
+  const sections = inferFieldSectionsForHtml({
+    html: card.backHtml,
+    fieldsHtml,
+    fieldNames,
+  });
+
+  const pickFromSections = (strict: boolean): string | null => {
+    for (const section of sections) {
+      const text = htmlToText(section.valueHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
+      if (!text) continue;
+      if (text.toLowerCase() === frontText) continue;
+      if (strict && frontWordRe.test(text)) continue;
+      const beforeSep = text.split(/\s*(?:•|\||;|\/|·)\s*/u)[0]?.trim();
+      const answer = String(beforeSep ?? text).replace(/\s+/gu, " ").trim();
       if (answer && answer.toLowerCase() !== frontText) return answer;
     }
     return null;
   };
 
-  return pickFromLines(true) ?? pickFromLines(false);
+  return pickFromSections(true) ?? pickFromSections(false);
 }
 
 function pickWriteTargetFromCard(card: {
