@@ -3795,22 +3795,21 @@ export default function Home() {
     const seed = `${currentId}:${normalizeChoiceText(mcCorrectAnswer)}`;
     const correctKey = normalizeChoiceText(mcCorrectAnswer);
 
-    // Partition: reviewed cards (excluding correct) vs rest
+    // Pick 1–2 from reviewed cards (harder distractors)
     const reviewedDecoys = seededShuffle(
       mcReviewedPool.filter((x) => normalizeChoiceText(x) !== correctKey),
       `${seed}:reviewed`
     );
-    const reviewedKeys = new Set(reviewedDecoys.map((x) => normalizeChoiceText(x)));
-    const otherDecoys = seededShuffle(
-      mcDecoysForCard.filter((x) => !reviewedKeys.has(normalizeChoiceText(x))),
-      `${seed}:other`
-    );
-
-    // Pick 1–2 randomly from reviewed, fill remaining with others
     const nReviewed = reviewedDecoys.length === 0 ? 0 : 1 + Math.floor(Math.random() * Math.min(2, reviewedDecoys.length));
     const pickedReviewed = reviewedDecoys.slice(0, nReviewed);
-    const pickedOther = otherDecoys.slice(0, 3 - pickedReviewed.length);
-    const pickedDecoys = [...pickedReviewed, ...pickedOther];
+    const pickedReviewedKeys = new Set(pickedReviewed.map((x) => normalizeChoiceText(x)));
+
+    // Fill remaining slots to always reach 3 decoys total
+    const fillPool = seededShuffle(
+      mcDecoysForCard.filter((x) => !pickedReviewedKeys.has(normalizeChoiceText(x))),
+      `${seed}:fill`
+    );
+    const pickedDecoys = [...pickedReviewed, ...fillPool.slice(0, 3 - pickedReviewed.length)];
 
     const uniq: Array<{ label: string; key: string }> = [];
     const seen = new Set<string>();
