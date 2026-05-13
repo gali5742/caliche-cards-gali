@@ -631,13 +631,22 @@ function extractMultipleChoiceAnswerFromCard(card: {
   const frontText = htmlToText(card.frontHtml).replace(/\[sound:[^\]]+\]/gi, "").trim().toLowerCase();
   const frontWordRe = new RegExp(`\\b${escapeRegExp(frontText)}\\b`, "iu");
 
-  // Use inferFieldSectionsForHtml — same data source as the card preview modal.
-  // It iterates fieldsHtml in note-type field order with isolated field values,
-  // which is reliable and avoids template HTML artifacts.
+  // Use inferFieldSectionsForHtml to get isolated field values, then sort by
+  // appearance order in backHtml so we follow the template's visual order
+  // (not the note type's field array order, which can differ).
   const sections = inferFieldSectionsForHtml({
     html: card.backHtml,
     fieldsHtml,
     fieldNames,
+  });
+
+  const backHtmlText = htmlToText(card.backHtml).toLowerCase();
+  sections.sort((a, b) => {
+    const ta = htmlToText(a.valueHtml).toLowerCase();
+    const tb = htmlToText(b.valueHtml).toLowerCase();
+    const pa = ta ? backHtmlText.indexOf(ta) : Infinity;
+    const pb = tb ? backHtmlText.indexOf(tb) : Infinity;
+    return pa - pb;
   });
 
   const pickFromSections = (strict: boolean): string | null => {
@@ -3605,10 +3614,16 @@ export default function Home() {
       const cfg = await getDeckConfig(ref);
       setReviewDeckConfig(cfg);
 
+      // Derive pinnedNorm directly from cfg — avoids the stale activePinnedNorm
+      // closure that would still reflect the previous render's reviewDeckConfig.
+      const cfgPinnedNorm = (cfg.pinnedBackFieldLabels ?? [])
+        .map(normalizeLabel)
+        .filter(Boolean);
+
       const mcEnabled = cfg.answerStyles.includes("multiple-choice");
       if (mcEnabled) {
         try {
-          const { all, reviewed } = await preloadMcAnswerPool(ref);
+          const { all, reviewed } = await preloadMcAnswerPool(ref, cfgPinnedNorm);
           setMcAnswerPool(all);
           setMcReviewedPool(reviewed);
           setMcAnswerPoolKey(`${ref.libraryId}:${ref.deckId}`);
@@ -3640,7 +3655,7 @@ export default function Home() {
 
       if (cfg.answerStyles.includes("match")) {
         try {
-          const pool = await preloadMatchPool(ref);
+          const pool = await preloadMatchPool(ref, cfgPinnedNorm);
           setMatchPool(pool);
           setMatchPoolKey(`${ref.libraryId}:${ref.deckId}`);
         } catch {
@@ -3979,7 +3994,7 @@ export default function Home() {
   const mcCanRun = Boolean(mcCorrectAnswer) && mcDecoysForCard.length > 0;
   const reverseCanRun = Boolean(reversePromptHtml) && Boolean(reverseCorrectFront) && reverseDecoysForCard.length > 0;
 
-  async function preloadMcAnswerPool(ref: DeckRef): Promise<{ all: string[]; reviewed: string[] }> {
+  async function preloadMcAnswerPool(ref: DeckRef, pinnedNorm?: string[]): Promise<{ all: string[]; reviewed: string[] }> {
     const db = getStudyDb();
     const [cards, states] = await Promise.all([
       db.cards.where("[libraryId+deckId]").equals([ref.libraryId, ref.deckId]).limit(400).toArray(),
@@ -4001,7 +4016,7 @@ export default function Home() {
         backHtml: c.backHtml,
         fieldsHtml: c.fieldsHtml,
         fieldNames: c.fieldNames,
-      }, activePinnedNorm);
+      }, pinnedNorm ?? activePinnedNorm);
       if (!a) continue;
       const key = normalizeChoiceText(a);
       if (!key || seen.has(key)) continue;
@@ -4036,7 +4051,7 @@ export default function Home() {
     return fronts;
   }
 
-  async function preloadMatchPool(ref: DeckRef): Promise<MatchItem[]> {
+  async function preloadMatchPool(ref: DeckRef, pinnedNorm?: string[]): Promise<MatchItem[]> {
     const db = getStudyDb();
     const now = Date.now();
     const states = await db.cardStates
@@ -4064,7 +4079,7 @@ export default function Home() {
           backHtml: c.backHtml,
           fieldsHtml: c.fieldsHtml,
           fieldNames: c.fieldNames,
-        }, activePinnedNorm) ?? htmlToText(c.backHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
+        }, pinnedNorm ?? activePinnedNorm) ?? htmlToText(c.backHtml).replace(/\[sound:[^\]]+\]/gi, "").trim();
       if (!front || !back) continue;
       const fk = normalizeChoiceText(front);
       const bk = normalizeChoiceText(back);
