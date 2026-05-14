@@ -1560,6 +1560,38 @@ async function onSyncFromCloud(opts?: { silent?: boolean }) {
   }
 }
 
+  async function onReimportApkg(libraryId: string, file: File): Promise<void> {
+    setError(null);
+    setBusy(true);
+    try {
+      const imported = await importApkg(file, { mediaNamespace: libraryId });
+      await upsertImportedDeck(libraryId, imported);
+      try {
+        await saveApkgFile({ libraryId, file });
+      } catch {
+        // ignore quota / private-mode errors
+      }
+
+      if (!LOCAL_ONLY_MODE) {
+        const libraryName = libraries.find((l) => l.id === libraryId)?.name ?? libraryId;
+        try {
+          await uploadLibraryDeckDataToCloudNow({ libraryId, libraryName });
+        } catch {
+          // non-fatal — user can sync manually
+        }
+        try {
+          await uploadLibraryMediaToCloudNow({ libraryId, deck: imported });
+        } catch {
+          // non-fatal — user can sync manually
+        }
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Re-import failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return {
     uploadLibraryDeckDataToCloudNow,
     deleteLibraryFromCloudNow,
@@ -1572,5 +1604,6 @@ async function onSyncFromCloud(opts?: { silent?: boolean }) {
     onLoadDemoDecks,
     onSyncFromCloud,
     onClearSaved,
+    onReimportApkg,
   };
 }

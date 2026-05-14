@@ -231,6 +231,7 @@ export default function Home() {
     onLoadDemoDecks,
     onSyncFromCloud,
     onClearSaved,
+    onReimportApkg,
   } = useCloudSync({
     libraries,
     uiLibraries,
@@ -1448,6 +1449,7 @@ export default function Home() {
             onCardInfoToggle={(lid, did, open) => void commitCardInfoDefaultOpen(lid, did, open)}
             onWriteLanguageChange={(lid, did, lang) => void commitDeckWriteLanguage(lid, did, lang)}
             onGetFieldNames={getDeckFieldNames}
+            onReimportApkg={(lid, file) => void onReimportApkg(lid, file)}
             setLimitsModal={setLimitsModal}
             setCardTypesModal={setCardTypesModal}
             setLearnedCardsModal={setLearnedCardsModal}

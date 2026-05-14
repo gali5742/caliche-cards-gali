@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { FaCog } from "react-icons/fa";
 
@@ -37,6 +38,7 @@ export function DeckList({
   onCardInfoToggle,
   onWriteLanguageChange,
   onGetFieldNames,
+  onReimportApkg,
   setLimitsModal,
   setCardTypesModal,
   setLearnedCardsModal,
@@ -61,11 +63,15 @@ export function DeckList({
   onCardInfoToggle: (libraryId: string, deckId: number, open: boolean) => void;
   onWriteLanguageChange: (libraryId: string, deckId: number, lang: "en" | "fr" | "es") => void;
   onGetFieldNames: (libraryId: string, deckId: number) => Promise<string[]>;
+  onReimportApkg: (libraryId: string, file: File) => void;
   setLimitsModal: Dispatch<SetStateAction<LimitsModalState | null>>;
   setCardTypesModal: Dispatch<SetStateAction<CardTypesModalState | null>>;
   setLearnedCardsModal: Dispatch<SetStateAction<LearnedCardsModalState | null>>;
   setFieldConfigModal: Dispatch<SetStateAction<FieldConfigModalState | null>>;
 }) {
+  const reimportInputRef = useRef<HTMLInputElement | null>(null);
+  const [reimportLibraryId, setReimportLibraryId] = useState<string | null>(null);
+
   return (
     <main className="caliche-panel rounded-3xl p-5 sm:p-6">
       <div className="flex flex-col gap-4">
@@ -89,6 +95,19 @@ export function DeckList({
               if (!f) return;
               e.currentTarget.value = "";
               onPickFile(f);
+            }}
+          />
+          <input
+            ref={reimportInputRef}
+            type="file"
+            accept=".apkg,application/octet-stream"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (!f || !reimportLibraryId) return;
+              e.currentTarget.value = "";
+              onReimportApkg(reimportLibraryId, f);
+              setReimportLibraryId(null);
             }}
           />
         </div>
@@ -371,6 +390,19 @@ export function DeckList({
                               }}
                             >
                               Pinned back fields
+                            </button>
+
+                            <button
+                              type="button"
+                              className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-foreground/5"
+                              onClick={() => {
+                                setOpenDeckMenu(null);
+                                setReimportLibraryId(lib.id);
+                                reimportInputRef.current?.click();
+                              }}
+                              disabled={busy}
+                            >
+                              Re-import .apkg
                             </button>
 
                             <button
