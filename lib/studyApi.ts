@@ -467,6 +467,9 @@ type GetNextCardOptions = {
 
   // Avoid immediately repeating the same card when using learn-ahead.
   excludeCardId?: number;
+
+  // When true, never offer new cards regardless of newPerDay.
+  skipNew?: boolean;
 };
 
 async function pickDueUpTo(
@@ -745,7 +748,7 @@ export async function getNextCard(ref: DeckRef, options: GetNextCardOptions = {}
 
   // b/c) review + new (both respect daily limits) — interleave instead of exhausting reviews first.
   const canReview = reviewDone < cfg.reviewsPerDay;
-  const canNew = newDone < cfg.newPerDay;
+  const canNew = !options.skipNew && newDone < cfg.newPerDay;
 
   const tryPickReview = async (): Promise<NextCard | null> => {
     if (!canReview) return null;

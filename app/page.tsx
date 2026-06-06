@@ -111,6 +111,7 @@ export default function Home() {
   const [reverseFrontPool, setReverseFrontPool] = useState<string[]>([]);
   const [reverseFrontPoolKey, setReverseFrontPoolKey] = useState<string | null>(null);
   const [reviewRef, setReviewRef] = useState<DeckRef | null>(null);
+  const [reviewSkipNew, setReviewSkipNew] = useState(false);
   const [current, setCurrent] = useState<NextCard | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewOverview, setReviewOverview] = useState<DeckOverview | null>(null);
@@ -586,7 +587,7 @@ export default function Home() {
     [reviewRef]
   );
 
-  async function loadNext(ref: DeckRef, excludeCardId?: number) {
+  const loadNext = useCallback(async (ref: DeckRef, excludeCardId?: number) => {
     // Show the next card ASAP; refresh overview in the background.
     const seq = (loadNextSeqRef.current += 1);
     const key = `${ref.libraryId}:${ref.deckId}`;
@@ -595,6 +596,7 @@ export default function Home() {
       learnAheadMs: 60 * 60 * 1000,
       learnAheadMode: "learn+relearn",
       excludeCardId,
+      skipNew: reviewSkipNew,
     });
 
     // If nothing was found while excluding the just-answered card, retry without
@@ -605,6 +607,7 @@ export default function Home() {
       next = await getNextCard(ref, {
         learnAheadMs: 60 * 60 * 1000,
         learnAheadMode: "learn+relearn",
+        skipNew: reviewSkipNew,
       });
     }
 
@@ -629,7 +632,7 @@ export default function Home() {
       .catch(() => {
         // Ignore: overview is best-effort UI state.
       });
-  }
+  }, [reviewSkipNew]);
 
   // Keep a lightweight clock for countdown UI.
   useEffect(() => {
@@ -654,11 +657,12 @@ export default function Home() {
     }, delayMs);
 
     return () => window.clearTimeout(id);
-  }, [mode, reviewRef, current, reviewOverview?.nextAvailableTs, reviewOverview?.nextDueTs]);
+  }, [mode, reviewRef, current, reviewOverview?.nextAvailableTs, reviewOverview?.nextDueTs, loadNext]);
 
-  async function beginReview(libraryId: string, deckId: number) {
+  async function beginReview(libraryId: string, deckId: number, opts?: { skipNew?: boolean }) {
     if (syncBusy) return;
     setError(null);
+    setReviewSkipNew(opts?.skipNew ?? false);
     setReviewBusy(true);
 
     const ref: DeckRef = { libraryId, deckId };
@@ -753,6 +757,16 @@ export default function Home() {
     setActiveLibraryId(libraryId);
     updateLibrary(libraryId, (item) => ({ ...item, selectedDeckId: deckId }));
     void beginReview(libraryId, deckId);
+  }
+
+  function startReviewDueOnly(libraryId: string, deckId: number) {
+    if (syncBusy) return;
+    const lib = libraries.find((l) => l.id === libraryId) ?? null;
+    if (!lib) return;
+
+    setActiveLibraryId(libraryId);
+    updateLibrary(libraryId, (item) => ({ ...item, selectedDeckId: deckId }));
+    void beginReview(libraryId, deckId, { skipNew: true });
   }
 
   async function onAnswer(result: "fail" | "pass") {
@@ -1443,6 +1457,7 @@ export default function Home() {
             onPickFile={(f) => void onPickFile(f)}
             onLoadDemoDecks={() => void onLoadDemoDecks()}
             onStartReview={startReviewFor}
+            onStartReviewDueOnly={startReviewDueOnly}
             onRename={renameDeck}
             onResetProgress={onResetDeckProgress}
             onDelete={(lid, did) => void deleteDeck(lid, did)}

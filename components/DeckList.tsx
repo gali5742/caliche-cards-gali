@@ -32,6 +32,7 @@ export function DeckList({
   onPickFile,
   onLoadDemoDecks,
   onStartReview,
+  onStartReviewDueOnly,
   onRename,
   onResetProgress,
   onDelete,
@@ -57,6 +58,7 @@ export function DeckList({
   onPickFile: (f: File) => void;
   onLoadDemoDecks: () => void;
   onStartReview: (libraryId: string, deckId: number) => void;
+  onStartReviewDueOnly: (libraryId: string, deckId: number) => void;
   onRename: (libraryId: string, deckId: number, name: string) => void;
   onResetProgress: (args: { libraryId: string; deckId: number; deckName: string }) => void;
   onDelete: (libraryId: string, deckId: number) => void;
@@ -255,6 +257,20 @@ export function DeckList({
 
                         {menuOpen ? (
                           <div className="absolute right-0 top-12 z-10 w-56 rounded-xl border border-foreground/15 bg-background p-1 shadow-sm">
+                            <button
+                              type="button"
+                              className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-foreground/5"
+                              onClick={() => {
+                                setOpenDeckMenu(null);
+                                onStartReviewDueOnly(lib.id, d.id);
+                              }}
+                              disabled={syncBusy}
+                            >
+                              Practice due only
+                            </button>
+
+                            <div className="my-1 border-t border-foreground/10" />
+
                             <button
                               type="button"
                               className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-foreground/5"
