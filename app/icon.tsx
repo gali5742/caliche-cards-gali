@@ -1,13 +1,13 @@
 import { ImageResponse } from "next/og";
 
 export const size = {
-  width: 180,
-  height: 180,
+  width: 512,
+  height: 512,
 };
 
 export const contentType = "image/png";
 
-export default function AppleIcon() {
+export default function Icon() {
   return new ImageResponse(
     (
       <div
@@ -18,13 +18,14 @@ export default function AppleIcon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#07111d",
+          borderRadius: 116,
         }}
       >
         <div
           style={{
             position: "relative",
-            width: 112,
-            height: 126,
+            width: 300,
+            height: 300,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -33,44 +34,44 @@ export default function AppleIcon() {
           <div
             style={{
               position: "absolute",
-              width: 78,
-              height: 104,
-              borderRadius: 16,
+              width: 210,
+              height: 270,
+              borderRadius: 42,
               background: "#12304a",
-              transform: "rotate(-10deg) translate(-8px, 1px)",
-              border: "3px solid #1f577e",
+              transform: "rotate(-10deg) translate(-22px, 2px)",
+              border: "8px solid #1f577e",
             }}
           />
           <div
             style={{
               position: "absolute",
-              width: 82,
-              height: 108,
-              borderRadius: 17,
+              width: 220,
+              height: 280,
+              borderRadius: 44,
               background: "#0d1f31",
-              transform: "rotate(7deg) translate(9px, 0px)",
-              border: "3px solid #203c55",
+              transform: "rotate(7deg) translate(24px, 0px)",
+              border: "8px solid #203c55",
             }}
           />
           <div
             style={{
               position: "relative",
-              width: 82,
-              height: 108,
-              borderRadius: 17,
+              width: 220,
+              height: 280,
+              borderRadius: 44,
               background: "#0f2235",
-              border: "3px solid #16b8ed",
+              border: "8px solid #16b8ed",
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
-              gap: 9,
-              padding: "0 16px",
+              gap: 24,
+              padding: "0 42px",
               boxSizing: "border-box",
             }}
           >
-            <div style={{ width: 24, height: 7, borderRadius: 999, background: "#16b8ed" }} />
-            <div style={{ width: 49, height: 7, borderRadius: 999, background: "#f3f8fc" }} />
-            <div style={{ width: 39, height: 7, borderRadius: 999, background: "#8ba5bb" }} />
+            <div style={{ width: 64, height: 18, borderRadius: 999, background: "#16b8ed" }} />
+            <div style={{ width: 132, height: 18, borderRadius: 999, background: "#f3f8fc" }} />
+            <div style={{ width: 104, height: 18, borderRadius: 999, background: "#8ba5bb" }} />
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Language Study",
-    short_name: "Study",
+    short_name: "词汇复习",
     description:
       "Local-first language vocabulary study with FSRS scheduling and offline review.",
     id: "/study",
@@ -17,22 +17,22 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["education", "productivity"],
     icons: [
       {
-        src: "/logo-192.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/logo-512.png",
+        src: "/icon",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/logo-180.png",
-        sizes: "180x180",
+        src: "/icon",
+        sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
+      },
+      {
+        src: "/apple-icon",
+        sizes: "180x180",
+        type: "image/png",
+        purpose: "any",
       },
     ],
   };

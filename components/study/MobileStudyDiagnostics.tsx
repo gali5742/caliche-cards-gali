@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
@@ -41,7 +42,7 @@ function StatusBadge({
 }) {
   if (value === null) {
     return (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-400">
+      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-400">
         {unknownLabel}
       </span>
     );
@@ -49,7 +50,7 @@ function StatusBadge({
 
   return (
     <span
-      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
         value
           ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
           : "border-amber-300/20 bg-amber-300/10 text-amber-200"
@@ -141,8 +142,7 @@ export function MobileStudyDiagnostics() {
       if (granted === null) {
         setError("当前浏览器不支持请求持久存储，或请求失败。可继续使用，但需要依赖备份防止系统清理数据。");
       } else if (!granted) {
-        setError("浏览器这次没有授予持久存储。若使用 iPhone，请从主屏幕安装后的 Web App 中重新打开再试。"
-        );
+        setError("浏览器这次没有授予持久存储。若使用 iPhone，请从主屏幕安装后的应用中重新打开再试。");
       }
     } finally {
       setRequesting(false);
@@ -156,8 +156,7 @@ export function MobileStudyDiagnostics() {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      setError("无法复制诊断结果；可以直接截图这个页面。"
-      );
+      setError("无法复制诊断结果；可以直接截图这个页面。");
     }
   }, [snapshot]);
 
@@ -166,22 +165,22 @@ export function MobileStudyDiagnostics() {
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)]">
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+0.9rem)]">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <a
+            <Link
               href="/study/settings"
               aria-label="返回设置"
-              className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition active:scale-95"
+              className="flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition duration-150 active:scale-90 active:bg-white/10"
             >
-              <FiArrowLeft aria-hidden="true" size={18} />
-            </a>
+              <FiArrowLeft aria-hidden="true" size={19} />
+            </Link>
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
-                device
+              <div className="text-xs font-semibold tracking-[0.18em] text-sky-300/80">
+                诊断
               </div>
               <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.04em] text-white">
-                设备与离线诊断
+                设备与离线
               </h1>
             </div>
           </div>
@@ -189,15 +188,15 @@ export function MobileStudyDiagnostics() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 disabled:opacity-40"
+            className="flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition duration-150 active:scale-90 active:bg-white/10 disabled:opacity-40"
             aria-label="刷新诊断"
           >
-            <FiRefreshCw aria-hidden="true" size={17} />
+            <FiRefreshCw aria-hidden="true" size={18} />
           </button>
         </header>
 
-        <p className="mt-4 text-xs leading-5 text-slate-500">
-          用于 iPhone/PWA 实机检查。这里不会上传学习数据，只读取当前设备的浏览器能力、缓存和本地数据库计数。
+        <p className="mt-4 text-sm leading-6 text-slate-500">
+          用于 iPhone 实机检查。这里不会上传学习数据，只读取当前设备的离线能力、缓存和本地数据库计数。
         </p>
 
         {error && (
@@ -214,7 +213,7 @@ export function MobileStudyDiagnostics() {
           <div className="mt-6 space-y-4">
             <Panel icon={<FiShield aria-hidden="true" size={17} />} title="存储生存状态">
               <DiagnosticRow
-                label="HTTPS / 安全上下文"
+                label="安全连接"
                 value={snapshot.storage.secureContext ? "是" : "否"}
                 status={snapshot.storage.secureContext}
               />
@@ -224,7 +223,7 @@ export function MobileStudyDiagnostics() {
                 status={snapshot.storage.standalone}
               />
               <DiagnosticRow
-                label="Storage API"
+                label="浏览器存储接口"
                 value={snapshot.storage.storageApiSupported ? "可用" : "不可用"}
                 status={snapshot.storage.storageApiSupported}
               />
@@ -235,7 +234,7 @@ export function MobileStudyDiagnostics() {
                     ? "无法确认"
                     : snapshot.storage.persistent
                       ? "已持久化"
-                      : "best-effort"
+                      : "普通模式"
                 }
                 status={snapshot.storage.persistent}
               />
@@ -245,7 +244,7 @@ export function MobileStudyDiagnostics() {
                   type="button"
                   onClick={() => void requestPersistence()}
                   disabled={requesting}
-                  className="mt-4 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
+                  className="mt-4 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition active:scale-[0.97] disabled:opacity-50"
                 >
                   {requesting ? "正在请求…" : "请求持久存储"}
                 </button>
@@ -263,27 +262,27 @@ export function MobileStudyDiagnostics() {
                       style={{ width: `${Math.max(1, storagePercent)}%` }}
                     />
                   </div>
-                  <div className="mt-2 text-right text-[11px] text-slate-600">
+                  <div className="mt-2 text-right text-xs text-slate-600">
                     已使用约 {storagePercent.toFixed(2)}%
                   </div>
                 </div>
               )}
             </Panel>
 
-            <Panel icon={<FiWifi aria-hidden="true" size={17} />} title="PWA 与离线壳">
+            <Panel icon={<FiWifi aria-hidden="true" size={17} />} title="离线应用状态">
               <DiagnosticRow
-                label="Service Worker"
+                label="离线服务支持"
                 value={snapshot.pwa.serviceWorkerSupported ? "支持" : "不支持"}
                 status={snapshot.pwa.serviceWorkerSupported}
               />
               <DiagnosticRow
-                label="当前页面已被接管"
+                label="当前页面已接管"
                 value={snapshot.pwa.controlledByServiceWorker ? "是" : "否"}
                 status={snapshot.pwa.controlledByServiceWorker}
               />
               <DiagnosticRow
-                label="注册状态"
-                value={snapshot.pwa.registrationState ?? "无"}
+                label="服务状态"
+                value={snapshot.pwa.registrationState === "activated" ? "已启用" : snapshot.pwa.registrationState ?? "无"}
                 status={snapshot.pwa.registrationState === "activated"}
               />
               <DiagnosticRow
@@ -295,11 +294,11 @@ export function MobileStudyDiagnostics() {
                 {snapshot.pwa.offlineRoutes.map((route) => (
                   <div
                     key={route.path}
-                    className="flex items-center justify-between rounded-xl bg-black/20 px-3 py-2 font-mono text-[11px]"
+                    className="flex items-center justify-between rounded-xl bg-black/20 px-3 py-2 text-xs"
                   >
                     <span className="text-slate-500">{route.path}</span>
                     <span className={route.cached ? "text-emerald-300" : "text-amber-200"}>
-                      {route.cached ? "cached" : "missing"}
+                      {route.cached ? "已缓存" : "缺失"}
                     </span>
                   </div>
                 ))}
@@ -307,20 +306,20 @@ export function MobileStudyDiagnostics() {
             </Panel>
 
             <Panel icon={<FiDatabase aria-hidden="true" size={17} />} title="本地学习数据库">
-              <DiagnosticRow label="ReviewItem" value={snapshot.database.reviewItems} />
-              <DiagnosticRow label="FSRS 状态" value={snapshot.database.reviewStates} />
-              <DiagnosticRow label="ReviewEvent" value={snapshot.database.reviewEvents} />
+              <DiagnosticRow label="复习项目" value={snapshot.database.reviewItems} />
+              <DiagnosticRow label="间隔状态" value={snapshot.database.reviewStates} />
+              <DiagnosticRow label="复习记录" value={snapshot.database.reviewEvents} />
               <DiagnosticRow label="学习进度" value={snapshot.database.progress} />
               <DiagnosticRow label="设置" value={snapshot.database.settings} />
             </Panel>
 
             <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5">
-              <div className="text-sm font-medium text-white">iPhone 实机检查顺序</div>
-              <ol className="mt-3 space-y-2 text-xs leading-5 text-slate-500">
+              <div className="text-base font-medium text-white">iPhone 实机检查顺序</div>
+              <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-500">
                 <li>1. Safari 中添加到主屏幕，再从主屏幕打开。</li>
                 <li>2. 确认“主屏幕独立模式”为正常，并请求持久存储。</li>
-                <li>3. 完成几张复习，刷新这里确认 ReviewEvent / FSRS 状态增加。</li>
-                <li>4. 开飞行模式，彻底关闭 Web App 后重新打开，检查首页、复习页和设置页。</li>
+                <li>3. 完成几张复习，刷新这里确认复习记录与间隔状态增加。</li>
+                <li>4. 开飞行模式，彻底关闭应用后重新打开，检查首页、复习页和设置页。</li>
                 <li>5. 恢复网络后再次打开，确认原学习状态仍在。</li>
               </ol>
             </section>
@@ -328,7 +327,7 @@ export function MobileStudyDiagnostics() {
             <button
               type="button"
               onClick={() => void copyReport()}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition duration-150 active:scale-[0.97] active:bg-white/10"
             >
               {copied ? (
                 <>
@@ -345,8 +344,8 @@ export function MobileStudyDiagnostics() {
           </div>
         ) : null}
 
-        <footer className="mt-8 text-center text-[10px] uppercase tracking-[0.18em] text-slate-700">
-          local only · no upload
+        <footer className="mt-8 text-center text-xs tracking-[0.12em] text-slate-700">
+          仅本机 · 不上传
         </footer>
       </div>
     </main>

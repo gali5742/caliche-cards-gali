@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Sora, Unbounded } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "./_components/ServiceWorkerRegister";
@@ -23,24 +23,26 @@ const display = Unbounded({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#07111d",
+};
+
 export const metadata: Metadata = {
   title: "Language Study",
   description: "Local-first language vocabulary review powered by FSRS.",
   applicationName: "Language Study",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon.ico", type: "image/x-icon" },
-      { url: "/logo.ico", type: "image/x-icon" },
-    ],
-    apple: [{ url: "/logo-180.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/icon", type: "image/png" }],
+    apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Study",
+    title: "词汇复习",
   },
 };
 

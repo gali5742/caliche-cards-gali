@@ -27,14 +27,28 @@
   --font-display: var(--font-display);
 }
 
+html {
+  min-height: 100%;
+  background: #07111d;
+}
+
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(1000px 660px at 5% 6%, rgb(58 143 212 / 23%), transparent 62%),
     radial-gradient(920px 560px at 92% 8%, rgb(242 166 90 / 16%), transparent 58%),
     linear-gradient(160deg, #07111d 0%, #0a1625 52%, #060f1b 100%);
   color: var(--foreground);
   font-family: var(--font-sans), "Avenir Next", "Segoe UI", sans-serif;
+  overscroll-behavior-y: none;
+}
+
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 * {
