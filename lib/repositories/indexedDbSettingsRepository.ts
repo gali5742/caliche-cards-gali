@@ -1,12 +1,9 @@
 import type { StudySettings } from "../../domain/settings/types";
-import {
-  getAppPreferencesDb,
-  type AppPreferencesDb,
-} from "../storage/appPreferencesDb";
+import { getReviewDb, type ReviewDb } from "../storage/reviewDb";
 import type { SettingsRepository } from "./settingsRepository";
 
 export class IndexedDbSettingsRepository implements SettingsRepository {
-  constructor(private readonly db: AppPreferencesDb = getAppPreferencesDb()) {}
+  constructor(private readonly db: ReviewDb = getReviewDb()) {}
 
   async get(): Promise<StudySettings | null> {
     const row = await this.db.settings.get("study");
