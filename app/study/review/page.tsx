@@ -12,12 +12,14 @@ function ReviewRoute() {
   const rawBook = searchParams.get("book");
   const parsedBook = rawBook ? Number(rawBook) : null;
   const book = parsedBook && Number.isInteger(parsedBook) ? parsedBook : null;
+  const mode = searchParams.get("mode") === "practice" ? "practice" : "scheduled";
 
   return (
     <MobileStudyReview
       languageId={languageId}
       collectionId={collectionId}
       book={book}
+      mode={mode}
     />
   );
 }
