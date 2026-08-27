@@ -147,6 +147,7 @@ export function MobileStudyHome() {
           selectedCollection.collectionId
         )}&book=${selectedBook}`
       : null;
+  const practiceHref = reviewHref ? `${reviewHref}&mode=practice` : null;
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
@@ -300,7 +301,7 @@ export function MobileStudyHome() {
               </div>
             </section>
 
-            <div className="mt-auto pt-8">
+            <div className="mt-auto space-y-3 pt-8">
               {total > 0 && reviewHref ? (
                 <a
                   href={reviewHref}
@@ -309,13 +310,23 @@ export function MobileStudyHome() {
                   开始复习 · {total}
                 </a>
               ) : (
-                <button
-                  type="button"
-                  disabled
-                  className="w-full rounded-[22px] bg-white/10 px-5 py-4 text-base font-semibold text-slate-500"
-                >
+                <div className="w-full rounded-[22px] border border-emerald-400/15 bg-emerald-400/8 px-5 py-4 text-center text-base font-semibold text-emerald-200">
                   今日已完成
-                </button>
+                </div>
+              )}
+
+              {practiceHref && (
+                <>
+                  <a
+                    href={practiceHref}
+                    className="block w-full rounded-[22px] border border-white/12 bg-white/[0.055] px-5 py-3.5 text-center text-sm font-semibold text-slate-200 transition active:scale-[0.99]"
+                  >
+                    自由复习
+                  </a>
+                  <p className="text-center text-[11px] leading-5 text-slate-600">
+                    只复习已经学过的词，不改变 FSRS 排程
+                  </p>
+                </>
               )}
             </div>
           </>
