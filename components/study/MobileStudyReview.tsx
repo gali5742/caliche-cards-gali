@@ -253,7 +253,7 @@ export function MobileStudyReview({
           <div className="mt-8 rounded-[26px] border border-white/10 bg-white/[0.05] p-5">
             <div className="text-lg font-medium text-white">还不能开始复习</div>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              当前词库还没有保存学习进度。请先在首页设置学习位置。
+              请先在首页设置学习位置。
             </p>
           </div>
         </div>
@@ -285,9 +285,9 @@ export function MobileStudyReview({
             </h1>
             <p className="mt-2 max-w-[300px] text-sm leading-6 text-slate-400">
               {emptyPractice
-                ? "自由复习只使用已经进入学习记录的词。完成至少一张计划复习后，这里就会出现内容。"
+                ? "完成一些计划复习后，这里会出现已学词。"
                 : isPractice
-                  ? `本轮浏览了 ${total} 个已学项目；这些选择没有改变正式复习排程。`
+                  ? `本轮浏览了 ${total} 个已学项目。`
                   : `已完成本轮 ${total} 个任务。可以结束今天，也可以继续加入下一组新词。`}
             </p>
 
@@ -350,11 +350,6 @@ export function MobileStudyReview({
               {isRecognition ? "看词想义" : "看义写词"}
             </span>
           </div>
-          {isPractice && (
-            <div className="mt-3 text-center text-sm text-slate-500">
-              本轮不会写入正式评分，也不会改变下次复习时间
-            </div>
-          )}
         </header>
 
         {error && (
@@ -503,9 +498,7 @@ export function MobileStudyReview({
         {canRate && (
           <section className="border-t border-white/8 pt-4">
             <div className="mb-3 text-center text-sm text-slate-500">
-              {isPractice
-                ? "选择体感难度后继续；不会计入正式排程"
-                : "根据实际回忆难度评分"}
+              {isPractice ? "选择体感难度后继续" : "根据实际回忆难度评分"}
             </div>
             <div className="grid grid-cols-4 gap-2">
               {RATINGS.map((option) => (
