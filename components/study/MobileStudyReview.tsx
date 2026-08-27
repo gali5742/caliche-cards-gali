@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiArrowLeft, FiCheckCircle, FiEye, FiXCircle } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiCheckCircle,
+  FiEye,
+  FiPlus,
+  FiXCircle,
+} from "react-icons/fi";
 
 import type { ReviewRating } from "../../domain/review/types";
+import { IndexedDbDailyStudyRepository } from "../../lib/repositories/indexedDbDailyStudyRepository";
 import { IndexedDbProgressRepository } from "../../lib/repositories/indexedDbProgressRepository";
 import { IndexedDbReviewRepository } from "../../lib/repositories/indexedDbReviewRepository";
 import { IndexedDbSettingsRepository } from "../../lib/repositories/indexedDbSettingsRepository";
@@ -17,6 +24,7 @@ import {
   type StudyReviewSession,
   type StudyReviewSessionMode,
 } from "../../lib/runtime/studyReview";
+import { addDailyNewVocabularyBatch } from "../../lib/study/dailyNewVocabularyPlan";
 import { listRegisteredCollections } from "../../lib/textbook/registry";
 
 const RATINGS: Array<{
@@ -60,6 +68,7 @@ export function MobileStudyReview({
       settings: new IndexedDbSettingsRepository(),
       vocabulary: new StaticVocabularyRepository(),
       review: new IndexedDbReviewRepository(),
+      dailyStudy: new IndexedDbDailyStudyRepository(),
     }),
     []
   );
@@ -72,6 +81,7 @@ export function MobileStudyReview({
   const [answer, setAnswer] = useState("");
   const [productionChecked, setProductionChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [addingBatch, setAddingBatch] = useState(false);
   const [promptStartedAt, setPromptStartedAt] = useState(() => Date.now());
 
   const load = useCallback(async () => {
@@ -94,6 +104,7 @@ export function MobileStudyReview({
         settingsRepository: repositories.settings,
         vocabularyRepository: repositories.vocabulary,
         reviewRepository: repositories.review,
+        dailyStudyRepository: repositories.dailyStudy,
       });
       setSession(next);
       setIndex(0);
@@ -112,6 +123,21 @@ export function MobileStudyReview({
   const total = session?.queue.entries.length ?? 0;
   const complete = Boolean(session && index >= total);
   const isPractice = session?.mode === "practice";
+  const remainingFreshAfterSession = session
+    ? Math.max(
+        0,
+        session.queue.summary.availableNewVocabulary -
+          session.queue.summary.newVocabulary
+      )
+    : 0;
+  const canAddBatch =
+    Boolean(session) &&
+    !isPractice &&
+    (session?.newVocabularyBatchSize ?? 0) > 0 &&
+    remainingFreshAfterSession > 0;
+  const nextBatchCount = session
+    ? Math.min(session.newVocabularyBatchSize, remainingFreshAfterSession)
+    : 0;
 
   useEffect(() => {
     setRevealed(false);
@@ -159,6 +185,34 @@ export function MobileStudyReview({
       }
     }, [current, promptStartedAt, repositories.review, session, submitting]
   );
+
+  const addAnotherBatch = useCallback(async () => {
+    if (
+      !session ||
+      session.mode !== "scheduled" ||
+      session.newVocabularyBatchSize <= 0 ||
+      addingBatch
+    ) {
+      return;
+    }
+
+    setAddingBatch(true);
+    setError(null);
+    try {
+      await addDailyNewVocabularyBatch({
+        collection: session.collection,
+        book: session.book,
+        now: Date.now(),
+        amount: session.newVocabularyBatchSize,
+        repository: repositories.dailyStudy,
+      });
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "无法追加新词");
+    } finally {
+      setAddingBatch(false);
+    }
+  }, [addingBatch, load, repositories.dailyStudy, session]);
 
   if (loading) {
     return (
@@ -234,11 +288,26 @@ export function MobileStudyReview({
                 ? "自由复习只使用已经进入学习记录的词。完成至少一张计划复习后，这里就会出现内容。"
                 : isPractice
                   ? `本轮浏览了 ${total} 个已学项目；这些选择没有改变正式复习排程。`
-                  : `已完成这次打开复习页时排入的 ${total} 个任务。之后到期的短间隔任务会再次出现在首页。`}
+                  : `已完成本轮 ${total} 个任务。可以结束今天，也可以继续加入下一组新词。`}
             </p>
+
+            {canAddBatch && (
+              <button
+                type="button"
+                onClick={() => void addAnotherBatch()}
+                disabled={addingBatch}
+                className="mt-7 flex w-full max-w-[300px] items-center justify-center gap-2 rounded-[20px] bg-sky-400 px-5 py-3.5 text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90 disabled:opacity-50"
+              >
+                <FiPlus aria-hidden="true" size={18} />
+                {addingBatch
+                  ? "正在加入…"
+                  : `再学一组 · ${nextBatchCount} 个新词`}
+              </button>
+            )}
+
             <Link
               href="/study"
-              className="mt-7 w-full max-w-[280px] rounded-[20px] bg-white px-5 py-3.5 text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90"
+              className={`${canAddBatch ? "mt-3" : "mt-7"} w-full max-w-[300px] rounded-[20px] border border-white/12 bg-white/[0.055] px-5 py-3.5 text-base font-semibold text-slate-200 transition duration-150 active:scale-[0.97] active:bg-white/[0.1]`}
             >
               回到今日首页
             </Link>
