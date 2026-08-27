@@ -141,14 +141,19 @@ export async function buildTodayReviewQueue(
   const vocabularyOrder = new Map(
     vocabulary.map((entry, index) => [entry.id, index])
   );
+  const activeVocabularyIds = new Set(vocabulary.map((entry) => entry.id));
 
   const { start: dayStart, end: dayEnd } = getLocalDayBounds(input.now);
   const [introducedVocabulary, introducedVocabularyToday] = await Promise.all([
     input.reviewRepository.listIntroducedVocabularyIds(),
     input.reviewRepository.listIntroducedVocabularyIds(dayStart, dayEnd),
   ]);
-  const introduced = new Set(introducedVocabulary);
-  const introducedToday = new Set(introducedVocabularyToday);
+  const introduced = new Set(
+    introducedVocabulary.filter((id) => activeVocabularyIds.has(id))
+  );
+  const introducedToday = new Set(
+    introducedVocabularyToday.filter((id) => activeVocabularyIds.has(id))
+  );
 
   const dueEntries: TodayReviewQueueEntry[] = [];
   const continuationEntries: TodayReviewQueueEntry[] = [];
