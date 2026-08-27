@@ -12,8 +12,10 @@ import { StaticVocabularyRepository } from "../../lib/repositories/staticVocabul
 import { isProductionAnswerCorrect } from "../../lib/review/productionAnswer";
 import {
   commitStudyReviewAnswer,
+  loadStudyPracticeSession,
   loadStudyReviewSession,
   type StudyReviewSession,
+  type StudyReviewSessionMode,
 } from "../../lib/runtime/studyReview";
 import { listRegisteredCollections } from "../../lib/textbook/registry";
 
@@ -38,10 +40,12 @@ export function MobileStudyReview({
   languageId,
   collectionId,
   book,
+  mode = "scheduled",
 }: {
   languageId?: string;
   collectionId?: string;
   book?: number | null;
+  mode?: StudyReviewSessionMode;
 }) {
   const collection = useMemo(
     () =>
@@ -81,7 +85,9 @@ export function MobileStudyReview({
     setLoading(true);
     setError(null);
     try {
-      const next = await loadStudyReviewSession({
+      const loadSession =
+        mode === "practice" ? loadStudyPracticeSession : loadStudyReviewSession;
+      const next = await loadSession({
         collection,
         book,
         now: Date.now(),
@@ -97,7 +103,7 @@ export function MobileStudyReview({
     } finally {
       setLoading(false);
     }
-  }, [book, collection, repositories]);
+  }, [book, collection, mode, repositories]);
 
   useEffect(() => {
     void load();
@@ -106,6 +112,7 @@ export function MobileStudyReview({
   const current = session?.queue.entries[index] ?? null;
   const total = session?.queue.entries.length ?? 0;
   const complete = Boolean(session && index >= total);
+  const isPractice = session?.mode === "practice";
 
   useEffect(() => {
     setRevealed(false);
@@ -126,6 +133,11 @@ export function MobileStudyReview({
   const submitRating = useCallback(
     async (rating: ReviewRating) => {
       if (!current || !session || submitting) return;
+
+      if (session.mode === "practice") {
+        setIndex((value) => value + 1);
+        return;
+      }
 
       setSubmitting(true);
       setError(null);
@@ -152,7 +164,7 @@ export function MobileStudyReview({
   if (loading) {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center bg-[#07111d] px-6 text-sm text-slate-500">
-        正在建立今日复习…
+        {mode === "practice" ? "正在建立自由复习…" : "正在建立今日复习…"}
       </main>
     );
   }
@@ -191,6 +203,7 @@ export function MobileStudyReview({
   }
 
   if (complete || !current) {
+    const emptyPractice = isPractice && total === 0;
     return (
       <main className="min-h-[100dvh] bg-[#07111d] px-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] text-slate-100">
         <div className="mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-[430px] flex-col">
@@ -202,10 +215,18 @@ export function MobileStudyReview({
               <FiCheckCircle aria-hidden="true" size={28} />
             </div>
             <h1 className="mt-5 text-2xl font-semibold tracking-tight text-white">
-              本轮完成
+              {emptyPractice
+                ? "暂无已学词"
+                : isPractice
+                  ? "自由复习完成"
+                  : "本轮完成"}
             </h1>
-            <p className="mt-2 max-w-[280px] text-sm leading-6 text-slate-400">
-              已完成这次打开复习页时排入的 {total} 个任务。之后到期的短间隔任务会再次出现在首页。
+            <p className="mt-2 max-w-[300px] text-sm leading-6 text-slate-400">
+              {emptyPractice
+                ? "自由复习只使用已经进入学习记录的词。完成至少一张计划复习后，这里就会出现内容。"
+                : isPractice
+                  ? `本轮浏览了 ${total} 个已学技能；这些评分没有改变 FSRS 排程。`
+                  : `已完成这次打开复习页时排入的 ${total} 个任务。之后到期的短间隔任务会再次出现在首页。`}
             </p>
             <Link
               href="/study"
@@ -246,12 +267,17 @@ export function MobileStudyReview({
           </div>
           <div className="mt-4 flex items-center justify-between gap-3 text-[11px]">
             <span className="rounded-full bg-white/6 px-2.5 py-1 text-slate-400">
-              {queueKindLabel(current.kind)}
+              {isPractice ? "自由复习" : queueKindLabel(current.kind)}
             </span>
             <span className="text-slate-600">
               {isRecognition ? "recognition" : "production"}
             </span>
           </div>
+          {isPractice && (
+            <div className="mt-3 text-center text-[11px] text-slate-600">
+              本轮不会写入 FSRS 评分或改变下次到期时间
+            </div>
+          )}
         </header>
 
         {error && (
@@ -396,7 +422,9 @@ export function MobileStudyReview({
         {canRate && (
           <section className="border-t border-white/8 pt-4">
             <div className="mb-3 text-center text-[11px] text-slate-600">
-              根据实际回忆难度评分
+              {isPractice
+                ? "选择体感难度后继续；不会计入 FSRS"
+                : "根据实际回忆难度评分"}
             </div>
             <div className="grid grid-cols-4 gap-2">
               {RATINGS.map((option) => (
