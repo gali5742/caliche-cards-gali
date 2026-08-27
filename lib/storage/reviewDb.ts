@@ -3,10 +3,11 @@ import type { ReviewEvent, ReviewItem } from "../../domain/review/types";
 import type { StoredReviewState } from "../repositories/reviewRepository";
 
 export const REVIEW_DB_NAME = "bonjour-francais-review";
-export const REVIEW_DB_VERSION = 1;
+export const REVIEW_DB_VERSION = 2;
 
 export type StoredReviewItem = ReviewItem & {
   updatedAt: number;
+  introducedAt?: number;
 };
 
 export type StoredReviewStateRow = StoredReviewState & {
@@ -25,8 +26,14 @@ export class ReviewDb extends Dexie {
   constructor() {
     super(REVIEW_DB_NAME);
 
-    this.version(REVIEW_DB_VERSION).stores({
+    this.version(1).stores({
       reviewItems: "id, vocabularyId, skill, enabled",
+      reviewStates: "reviewItemId, due",
+      reviewEvents: "id, reviewItemId, reviewedAt, [reviewItemId+reviewedAt]",
+    });
+
+    this.version(REVIEW_DB_VERSION).stores({
+      reviewItems: "id, vocabularyId, skill, enabled, introducedAt",
       reviewStates: "reviewItemId, due",
       reviewEvents: "id, reviewItemId, reviewedAt, [reviewItemId+reviewedAt]",
     });

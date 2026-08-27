@@ -24,13 +24,45 @@ function stripStateMetadata(state: StoredReviewStateRow): StoredReviewState {
   };
 }
 
+function earliestIntroducedAt(items: readonly StoredReviewItem[]): number | undefined {
+  const introduced = items
+    .map((item) => item.introducedAt)
+    .filter((value): value is number => value !== undefined);
+  return introduced.length === 0 ? undefined : Math.min(...introduced);
+}
+
 export class IndexedDbReviewRepository implements ReviewRepository {
   constructor(private readonly db: ReviewDb = getReviewDb()) {}
 
   async upsertItems(items: ReviewItem[]): Promise<void> {
     if (items.length === 0) return;
+
     const updatedAt = Date.now();
-    await this.db.reviewItems.bulkPut(items.map((item) => ({ ...item, updatedAt })));
+    const vocabularyIds = [...new Set(items.map((item) => item.vocabularyId))];
+    const introductionByVocabulary = new Map<string, number>();
+
+    await Promise.all(
+      vocabularyIds.map(async (vocabularyId) => {
+        const existing = await this.db.reviewItems
+          .where("vocabularyId")
+          .equals(vocabularyId)
+          .toArray();
+        const introducedAt = earliestIntroducedAt(existing);
+        if (introducedAt !== undefined) {
+          introductionByVocabulary.set(vocabularyId, introducedAt);
+        }
+      })
+    );
+
+    await this.db.reviewItems.bulkPut(
+      items.map((item) => ({
+        ...item,
+        updatedAt,
+        ...(introductionByVocabulary.has(item.vocabularyId)
+          ? { introducedAt: introductionByVocabulary.get(item.vocabularyId) }
+          : {}),
+      }))
+    );
   }
 
   async getItem(id: string): Promise<ReviewItem | null> {
@@ -38,9 +70,43 @@ export class IndexedDbReviewRepository implements ReviewRepository {
     return item ? stripItemMetadata(item) : null;
   }
 
+  async getItems(ids: readonly string[]): Promise<ReviewItem[]> {
+    if (ids.length === 0) return [];
+    const items = await this.db.reviewItems.bulkGet([...ids]);
+    return items.filter((item): item is StoredReviewItem => Boolean(item)).map(stripItemMetadata);
+  }
+
   async listItemsForVocabulary(vocabularyId: string): Promise<ReviewItem[]> {
     const items = await this.db.reviewItems.where("vocabularyId").equals(vocabularyId).toArray();
     return items.map(stripItemMetadata);
+  }
+
+  async listIntroducedVocabularyIds(
+    fromInclusive?: number,
+    toExclusive?: number
+  ): Promise<string[]> {
+    let items: StoredReviewItem[];
+
+    if (fromInclusive !== undefined && toExclusive !== undefined) {
+      items = await this.db.reviewItems
+        .where("introducedAt")
+        .between(fromInclusive, toExclusive, true, false)
+        .toArray();
+    } else if (fromInclusive !== undefined) {
+      items = await this.db.reviewItems
+        .where("introducedAt")
+        .aboveOrEqual(fromInclusive)
+        .toArray();
+    } else if (toExclusive !== undefined) {
+      items = await this.db.reviewItems
+        .where("introducedAt")
+        .below(toExclusive)
+        .toArray();
+    } else {
+      items = await this.db.reviewItems.where("introducedAt").aboveOrEqual(0).toArray();
+    }
+
+    return [...new Set(items.map((item) => item.vocabularyId))];
   }
 
   async getState(reviewItemId: string): Promise<StoredReviewState | null> {
@@ -65,9 +131,28 @@ export class IndexedDbReviewRepository implements ReviewRepository {
     const now = Date.now();
     await this.db.transaction(
       "rw",
+      this.db.reviewItems,
       this.db.reviewStates,
       this.db.reviewEvents,
       async () => {
+        const reviewedItem = await this.db.reviewItems.get(event.reviewItemId);
+        if (!reviewedItem) {
+          throw new Error(`ReviewItem ${event.reviewItemId} is not persisted`);
+        }
+
+        const siblings = await this.db.reviewItems
+          .where("vocabularyId")
+          .equals(reviewedItem.vocabularyId)
+          .toArray();
+        const introducedAt = earliestIntroducedAt(siblings) ?? event.reviewedAt;
+
+        await this.db.reviewItems.bulkPut(
+          siblings.map((item) => ({
+            ...item,
+            introducedAt: Math.min(item.introducedAt ?? introducedAt, introducedAt),
+            updatedAt: now,
+          }))
+        );
         await this.db.reviewStates.put({ ...state, updatedAt: now });
         await this.db.reviewEvents.add({ ...event, createdAt: now });
       }

@@ -9,7 +9,12 @@ export type StoredReviewState = {
 export interface ReviewRepository {
   upsertItems(items: ReviewItem[]): Promise<void>;
   getItem(id: string): Promise<ReviewItem | null>;
+  getItems(ids: readonly string[]): Promise<ReviewItem[]>;
   listItemsForVocabulary(vocabularyId: string): Promise<ReviewItem[]>;
+  listIntroducedVocabularyIds(
+    fromInclusive?: number,
+    toExclusive?: number
+  ): Promise<string[]>;
   getState(reviewItemId: string): Promise<StoredReviewState | null>;
   listDueStates(dueThrough: number): Promise<StoredReviewState[]>;
   saveState(state: StoredReviewState): Promise<void>;
