@@ -13,15 +13,17 @@ A textbook is one content collection, not the identity of the application. Each 
 - `languageId`
 - `collectionId`
 - book / unit / lesson coordinates
-- semantic `VocabularyEntry` records
+- `coverage`: `complete` or `partial`
+- semantic vocabulary records
 
-The initial seed uses a small set from the French collection `bonjour-francais`, Book 1, Unité 1, Leçon 4 so the data path can be validated before bulk transcription.
+Schema v3 keeps shared lesson coordinates at the lesson-file level. Individual raw entries do not repeat the same `source` object; `validateLessonData()` injects the canonical textbook source into each runtime `VocabularyEntry`.
 
 ## Runtime path
 
 1. Static lesson JSON is imported by `lib/textbook/registry.ts`.
-2. `validateLessonData` rejects malformed lesson files, mismatched collection/source coordinates, duplicate IDs, or IDs without a language/collection namespace.
-3. `StaticVocabularyRepository` exposes the repository interface used by application code.
+2. `validateLessonData` rejects malformed lesson files, invalid coverage, mismatched explicit source coordinates, duplicate IDs, or IDs without a language/collection namespace.
+3. The validator injects the lesson source coordinates into each runtime `VocabularyEntry`.
+4. `StaticVocabularyRepository` exposes the repository interface used by application code.
 
 ## Data identity
 
@@ -34,7 +36,7 @@ Vocabulary IDs are globally namespaced:
 Example:
 
 ```text
-fr:bonjour-francais:b1-u1-l4-francais
+fr:bonjour-francais:b1-u1-l1-francais
 ```
 
 This prevents collisions when additional French collections or entirely different languages are added later.
@@ -55,6 +57,7 @@ The keys/values are collection data, so another language can use its own gender 
 - textbook content is authoritative semantic data, not `frontHtml/backHtml/fieldsHtml[]`
 - scheduling state never belongs in textbook JSON
 - one lesson per source file
+- lesson-level source coordinates are written once, not repeated per entry
+- `coverage: partial` allows the repository to represent the learner's current partially studied lesson without unlocking later vocabulary
 - collection identity is separate from application identity
 - IDs remain stable after publication
-- bulk transcription should happen only after the schema and query path are proven
