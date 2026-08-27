@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiBookOpen, FiRefreshCw } from "react-icons/fi";
+import { FiBookOpen, FiRefreshCw, FiSettings } from "react-icons/fi";
 
 import type { ContentCollection } from "../../domain/content/types";
 import { IndexedDbProgressRepository } from "../../lib/repositories/indexedDbProgressRepository";
@@ -162,14 +162,23 @@ export function MobileStudyHome() {
               今日复习
             </h1>
           </div>
-          <div
-            className={`mt-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-              online
-                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                : "border-amber-300/20 bg-amber-300/10 text-amber-200"
-            }`}
-          >
-            {online ? "在线" : "离线"}
+          <div className="mt-1 flex items-center gap-2">
+            <div
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                online
+                  ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                  : "border-amber-300/20 bg-amber-300/10 text-amber-200"
+              }`}
+            >
+              {online ? "在线" : "离线"}
+            </div>
+            <a
+              href="/study/settings"
+              aria-label="打开设置"
+              className="flex size-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition active:scale-95"
+            >
+              <FiSettings aria-hidden="true" size={15} />
+            </a>
           </div>
         </header>
 
