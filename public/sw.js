@@ -1,5 +1,5 @@
 // Bump this when changing caching behavior to ensure old caches are dropped.
-const CACHE_NAME = "language-study-v5";
+const CACHE_NAME = "language-study-v6";
 
 const PRECACHE_URLS = [
   "/",
