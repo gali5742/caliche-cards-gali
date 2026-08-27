@@ -7,9 +7,12 @@ export type StoredReviewState = {
 };
 
 export interface ReviewRepository {
+  upsertItems(items: ReviewItem[]): Promise<void>;
   getItem(id: string): Promise<ReviewItem | null>;
   listItemsForVocabulary(vocabularyId: string): Promise<ReviewItem[]>;
   getState(reviewItemId: string): Promise<StoredReviewState | null>;
+  listDueStates(dueThrough: number): Promise<StoredReviewState[]>;
   saveState(state: StoredReviewState): Promise<void>;
   appendEvent(event: ReviewEvent): Promise<void>;
+  commitReview(state: StoredReviewState, event: ReviewEvent): Promise<void>;
 }
