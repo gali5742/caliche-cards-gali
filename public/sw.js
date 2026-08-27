@@ -1,11 +1,12 @@
 // Bump this when changing caching behavior to ensure old caches are dropped.
-const CACHE_NAME = "language-study-v3";
+const CACHE_NAME = "language-study-v4";
 
 const PRECACHE_URLS = [
   "/",
   "/study",
   "/study/review",
   "/study/settings",
+  "/study/diagnostics",
   "/manifest.webmanifest",
   "/sql-wasm.wasm",
   "/favicon.ico",
@@ -18,6 +19,7 @@ const PRECACHE_URLS = [
 ];
 
 function shellFallbackPath(pathname) {
+  if (pathname.startsWith("/study/diagnostics")) return "/study/diagnostics";
   if (pathname.startsWith("/study/settings")) return "/study/settings";
   if (pathname.startsWith("/study/review")) return "/study/review";
   return pathname.startsWith("/study") ? "/study" : "/";

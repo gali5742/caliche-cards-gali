@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiArrowLeft, FiCheck, FiRotateCcw } from "react-icons/fi";
+import { FiActivity, FiArrowLeft, FiCheck, FiRotateCcw } from "react-icons/fi";
 
 import type { StudySettings } from "../../domain/settings/types";
 import { IndexedDbSettingsRepository } from "../../lib/repositories/indexedDbSettingsRepository";
@@ -241,6 +241,24 @@ export function MobileStudySettings() {
                 <span>99%</span>
               </div>
             </SettingsSection>
+
+            <a
+              href="/study/diagnostics"
+              className="flex items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4 transition active:bg-white/[0.06]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-300">
+                  <FiActivity aria-hidden="true" size={17} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-200">设备与离线诊断</div>
+                  <div className="mt-1 text-[11px] text-slate-600">
+                    检查 PWA、持久存储、离线缓存和本地数据
+                  </div>
+                </div>
+              </div>
+              <span className="text-slate-600">›</span>
+            </a>
 
             {defaults && (
               <button
