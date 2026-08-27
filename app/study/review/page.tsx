@@ -1,24 +1,15 @@
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+
 import { MobileStudyReview } from "../../../components/study/MobileStudyReview";
 
-type ReviewPageSearchParams = {
-  language?: string | string[];
-  collection?: string | string[];
-  book?: string | string[];
-};
-
-function first(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function StudyReviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<ReviewPageSearchParams>;
-}) {
-  const params = await searchParams;
-  const languageId = first(params.language);
-  const collectionId = first(params.collection);
-  const rawBook = first(params.book);
+function ReviewRoute() {
+  const searchParams = useSearchParams();
+  const languageId = searchParams.get("language") ?? undefined;
+  const collectionId = searchParams.get("collection") ?? undefined;
+  const rawBook = searchParams.get("book");
   const parsedBook = rawBook ? Number(rawBook) : null;
   const book = parsedBook && Number.isInteger(parsedBook) ? parsedBook : null;
 
@@ -28,5 +19,19 @@ export default async function StudyReviewPage({
       collectionId={collectionId}
       book={book}
     />
+  );
+}
+
+export default function StudyReviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-[100dvh] items-center justify-center bg-[#07111d] px-6 text-sm text-slate-500">
+          正在打开复习…
+        </main>
+      }
+    >
+      <ReviewRoute />
+    </Suspense>
   );
 }
