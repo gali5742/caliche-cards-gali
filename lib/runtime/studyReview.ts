@@ -5,6 +5,7 @@ import type {
   ReviewRating,
 } from "../../domain/review/types";
 import type { LearningProgress } from "../../domain/textbook/types";
+import type { DailyStudyRepository } from "../repositories/dailyStudyRepository";
 import type { ProgressRepository } from "../repositories/progressRepository";
 import type { ReviewRepository } from "../repositories/reviewRepository";
 import type { SettingsRepository } from "../repositories/settingsRepository";
@@ -17,6 +18,7 @@ import {
 } from "../review/todayReviewQueue";
 import { FsrsScheduler } from "../srs/fsrsAdapter";
 import type { FsrsSchedulerConfig } from "../srs/fsrsTypes";
+import { getDailyExtraNewVocabulary } from "../study/dailyNewVocabularyPlan";
 import { loadStudyRuntimeConfig } from "./studyRuntimeConfig";
 
 export type StudyReviewSessionMode = "scheduled" | "practice";
@@ -28,6 +30,7 @@ export type StudyReviewSession = {
   fsrsConfig: FsrsSchedulerConfig;
   queue: TodayReviewQueue;
   mode: StudyReviewSessionMode;
+  newVocabularyBatchSize: number;
 };
 
 type LoadStudyReviewSessionInput = {
@@ -38,6 +41,7 @@ type LoadStudyReviewSessionInput = {
   settingsRepository: SettingsRepository;
   vocabularyRepository: VocabularyRepository;
   reviewRepository: ReviewRepository;
+  dailyStudyRepository?: DailyStudyRepository;
 };
 
 export async function loadStudyReviewSession(
@@ -55,6 +59,17 @@ export async function loadStudyReviewSession(
 
   if (!runtime.progress) return null;
 
+  const dailyExtraNewVocabulary = input.dailyStudyRepository
+    ? await getDailyExtraNewVocabulary({
+        collection: input.collection,
+        book: input.book,
+        now: input.now,
+        repository: input.dailyStudyRepository,
+      })
+    : 0;
+  const effectiveDailyNewVocabularyLimit =
+    runtime.settings.dailyNewVocabularyLimit + dailyExtraNewVocabulary;
+
   const scheduler = new FsrsScheduler(runtime.fsrsConfig);
   const queue = await buildTodayReviewQueue({
     progress: runtime.progress,
@@ -62,7 +77,7 @@ export async function loadStudyReviewSession(
     reviewRepository: input.reviewRepository,
     scheduler,
     now: input.now,
-    dailyNewVocabularyLimit: runtime.settings.dailyNewVocabularyLimit,
+    dailyNewVocabularyLimit: effectiveDailyNewVocabularyLimit,
     skills: runtime.reviewSkills,
   });
 
@@ -73,6 +88,7 @@ export async function loadStudyReviewSession(
     fsrsConfig: runtime.fsrsConfig,
     queue,
     mode: "scheduled",
+    newVocabularyBatchSize: runtime.settings.dailyNewVocabularyLimit,
   };
 }
 
@@ -105,6 +121,7 @@ export async function loadStudyPracticeSession(
     fsrsConfig: runtime.fsrsConfig,
     queue,
     mode: "practice",
+    newVocabularyBatchSize: runtime.settings.dailyNewVocabularyLimit,
   };
 }
 
