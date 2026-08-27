@@ -1,68 +1,38 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "languageId": "fr",
   "collectionId": "bonjour-francais",
   "book": 1,
   "unit": 1,
   "lesson": 4,
+  "coverage": "complete",
   "entries": [
-    {
-      "id": "fr:bonjour-francais:b1-u1-l4-dentiste",
-      "lemma": "dentiste",
-      "ipa": "/dɑ̃.tist/",
-      "meaningsZh": ["牙医"],
-      "partOfSpeech": "nom",
-      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
-      "tags": ["profession"]
-    },
-    {
-      "id": "fr:bonjour-francais:b1-u1-l4-adresse",
-      "lemma": "adresse",
-      "ipa": "/a.dʁɛs/",
-      "meaningsZh": ["地址"],
-      "partOfSpeech": "nom",
-      "grammar": { "gender": "feminine" },
-      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
-      "tags": ["identity"]
-    },
-    {
-      "id": "fr:bonjour-francais:b1-u1-l4-telephone",
-      "lemma": "téléphone",
-      "ipa": "/te.le.fɔn/",
-      "meaningsZh": ["电话", "电话机"],
-      "partOfSpeech": "nom",
-      "grammar": { "gender": "masculine" },
-      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
-      "tags": ["identity"]
-    },
-    {
-      "id": "fr:bonjour-francais:b1-u1-l4-professeur",
-      "lemma": "professeur",
-      "ipa": "/pʁɔ.fɛ.sœʁ/",
-      "meaningsZh": ["教师", "老师"],
-      "partOfSpeech": "nom",
-      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
-      "tags": ["profession"]
-    },
-    {
-      "id": "fr:bonjour-francais:b1-u1-l4-italien",
-      "lemma": "italien",
-      "ipa": "/i.ta.ljɛ̃/",
-      "meaningsZh": ["意大利的", "意大利人"],
-      "partOfSpeech": "adjectif / nom",
-      "grammar": { "forms": { "feminine": "italienne" } },
-      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
-      "tags": ["nationality"]
-    },
-    {
-      "id": "fr:bonjour-francais:b1-u1-l4-francais",
-      "lemma": "français",
-      "ipa": "/fʁɑ̃.sɛ/",
-      "meaningsZh": ["法国的", "法国人", "法语"],
-      "partOfSpeech": "adjectif / nom",
-      "grammar": { "forms": { "feminine": "française" } },
-      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
-      "tags": ["nationality", "language"]
-    }
+    {"id":"fr:bonjour-francais:b1-u1-l4-dakar","lemma":"Dakar","ipa":"/da.kaʁ/","meaningsZh":["达喀尔（塞内加尔首都）"],"partOfSpeech":"nom propre","tags":["place"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-danse","lemma":"danse","ipa":"/dɑ̃s/","meaningsZh":["舞蹈"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-de","lemma":"de","ipa":"/də/","meaningsZh":["从","来自","……的"],"partOfSpeech":"préposition"},
+    {"id":"fr:bonjour-francais:b1-u1-l4-europe","lemma":"Europe","ipa":"/ø.ʁɔp/","meaningsZh":["欧洲"],"partOfSpeech":"nom propre","grammar":{"gender":"feminine"},"tags":["place"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-football","lemma":"football","ipa":"/fut.bol/","meaningsZh":["足球"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-frere","lemma":"frère","ipa":"/fʁɛʁ/","meaningsZh":["兄弟"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-golf","lemma":"golf","ipa":"/ɡɔlf/","meaningsZh":["高尔夫球运动"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-guyanais","lemma":"guyanais","ipa":"/ɡɥi.ja.nɛ/","meaningsZh":["圭亚那的","圭亚那人"],"partOfSpeech":"adjectif / nom","grammar":{"forms":{"feminine":"guyanaise"}},"tags":["nationality"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-lausanne","lemma":"Lausanne","ipa":"/lo.zan/","meaningsZh":["洛桑（瑞士城市）"],"partOfSpeech":"nom propre","tags":["place"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-lecture","lemma":"lecture","ipa":"/lɛk.tyʁ/","meaningsZh":["阅读"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-litterature","lemma":"littérature","ipa":"/li.te.ʁa.tyʁ/","meaningsZh":["文学"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-mere","lemma":"mère","ipa":"/mɛʁ/","meaningsZh":["母亲","妈妈"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-moi","lemma":"moi","ipa":"/mwa/","meaningsZh":["我（重读人称代词）"],"partOfSpeech":"pronom personnel"},
+    {"id":"fr:bonjour-francais:b1-u1-l4-monde","lemma":"monde","ipa":"/mɔ̃d/","meaningsZh":["世界"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-musique","lemma":"musique","ipa":"/my.zik/","meaningsZh":["音乐","乐曲"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-nature","lemma":"nature","ipa":"/na.tyʁ/","meaningsZh":["自然（界）","大自然"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-pere","lemma":"père","ipa":"/pɛʁ/","meaningsZh":["父亲","爸爸"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-photo","lemma":"photo","ipa":"/fɔ.to/","meaningsZh":["摄影","照片"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-quebecois","lemma":"québécois","ipa":"/ke.be.kwa/","meaningsZh":["魁北克的","魁北克人"],"partOfSpeech":"adjectif / nom","grammar":{"forms":{"feminine":"québécoise"}},"tags":["nationality"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-senegal","lemma":"Sénégal","ipa":"/se.ne.ɡal/","meaningsZh":["塞内加尔"],"partOfSpeech":"nom propre","grammar":{"gender":"masculine"},"tags":["place"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-senegalais","lemma":"sénégalais","ipa":"/se.ne.ɡa.lɛ/","meaningsZh":["塞内加尔的","塞内加尔人"],"partOfSpeech":"adjectif / nom","grammar":{"forms":{"feminine":"sénégalaise"}},"tags":["nationality"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-serveur","lemma":"serveur","ipa":"/sɛʁ.vœʁ/","meaningsZh":["服务生","服务员"],"partOfSpeech":"nom","grammar":{"gender":"masculine","forms":{"feminine":"serveuse"}},"tags":["profession"]},
+    {"id":"fr:bonjour-francais:b1-u1-l4-soeur","lemma":"sœur","ipa":"/sœʁ/","meaningsZh":["姐妹"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-souvent","lemma":"souvent","ipa":"/su.vɑ̃/","meaningsZh":["经常","常常"],"partOfSpeech":"adverbe"},
+    {"id":"fr:bonjour-francais:b1-u1-l4-sport","lemma":"sport","ipa":"/spɔʁ/","meaningsZh":["运动","体育运动","运动项目"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u1-l4-un-peu","lemma":"un peu","ipa":"/œ̃ pø/","meaningsZh":["一点儿","一下","少许","稍微"],"partOfSpeech":"locution adverbiale"},
+    {"id":"fr:bonjour-francais:b1-u1-l4-volley-ball","lemma":"volley-ball","ipa":"/vɔ.lɛ.bɔl/","meaningsZh":["排球","排球运动"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}}
   ]
 }
