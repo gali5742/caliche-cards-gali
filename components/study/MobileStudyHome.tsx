@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiBookOpen, FiRefreshCw, FiSettings } from "react-icons/fi";
 
@@ -43,7 +44,7 @@ function MetricCard({
       <div className="mt-2 text-3xl font-semibold tracking-tight text-white">
         {value}
       </div>
-      <div className="mt-1 text-[11px] leading-4 text-slate-500">{hint}</div>
+      <div className="mt-1 text-xs leading-4 text-slate-500">{hint}</div>
     </div>
   );
 }
@@ -151,21 +152,19 @@ export function MobileStudyHome() {
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)]">
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+0.9rem)]">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
-              {selectedCollection
-                ? `${selectedCollection.languageId} · ${selectedCollection.kind}`
-                : "study"}
+            <div className="text-xs font-semibold tracking-[0.18em] text-sky-300/80">
+              词汇复习
             </div>
-            <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-white">
+            <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.04em] text-white">
               今日复习
             </h1>
           </div>
           <div className="mt-1 flex items-center gap-2">
             <div
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
                 online
                   ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
                   : "border-amber-300/20 bg-amber-300/10 text-amber-200"
@@ -173,22 +172,22 @@ export function MobileStudyHome() {
             >
               {online ? "在线" : "离线"}
             </div>
-            <a
+            <Link
               href="/study/settings"
               aria-label="打开设置"
-              className="flex size-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition active:scale-95"
+              className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition duration-150 active:scale-90 active:bg-white/10"
             >
-              <FiSettings aria-hidden="true" size={15} />
-            </a>
+              <FiSettings aria-hidden="true" size={17} />
+            </Link>
           </div>
         </header>
 
         <section className="mt-7 rounded-[28px] border border-white/10 bg-gradient-to-b from-slate-800/80 to-slate-900/80 p-5 shadow-[0_24px_70px_-42px_rgba(56,189,248,0.55)]">
           {collections.length > 1 ? (
             <label className="block">
-              <span className="text-xs text-slate-400">当前词库</span>
+              <span className="text-sm text-slate-400">当前词库</span>
               <select
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3 text-sm text-white"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3 text-base text-white"
                 value={selectedCollectionKey}
                 onChange={(event) => setSelectedCollectionKey(event.target.value)}
               >
@@ -198,15 +197,15 @@ export function MobileStudyHome() {
                     key={collectionKey(collection)}
                     value={collectionKey(collection)}
                   >
-                    {collection.languageId.toUpperCase()} · {collection.title}
+                    {collection.title}
                   </option>
                 ))}
               </select>
             </label>
           ) : selectedCollection ? (
             <div>
-              <div className="text-xs text-slate-400">当前词库</div>
-              <div className="mt-1 text-lg font-medium text-white">
+              <div className="text-sm text-slate-400">当前词库</div>
+              <div className="mt-1 text-xl font-medium text-white">
                 {selectedCollection.title}
               </div>
             </div>
@@ -221,7 +220,7 @@ export function MobileStudyHome() {
                   key={book}
                   type="button"
                   onClick={() => setSelectedBook(book)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition duration-150 active:scale-95 ${
                     selectedBook === book
                       ? "bg-white text-slate-950"
                       : "bg-white/8 text-slate-300"
@@ -250,17 +249,17 @@ export function MobileStudyHome() {
               <MetricCard
                 label="到期"
                 value={queue?.dueItems ?? 0}
-                hint="FSRS 到期"
+                hint="到期任务"
               />
               <MetricCard
                 label="继续"
                 value={queue?.continuationItems ?? 0}
-                hint="已学词技能"
+                hint="继续巩固"
               />
               <MetricCard
                 label="新词"
                 value={queue?.newVocabulary ?? 0}
-                hint={`上限 ${snapshot.settings.dailyNewVocabularyLimit}`}
+                hint={`默认 ${snapshot.settings.dailyNewVocabularyLimit}`}
               />
             </section>
 
@@ -270,24 +269,24 @@ export function MobileStudyHome() {
                   <FiBookOpen aria-hidden="true" size={19} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs text-slate-500">学习进度</div>
-                  <div className="mt-1 truncate text-sm font-medium text-slate-100">
+                  <div className="text-sm text-slate-500">学习进度</div>
+                  <div className="mt-1 truncate text-base font-medium text-slate-100">
                     {formatProgress(snapshot)}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => void reload()}
-                  className="rounded-full p-2 text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+                  className="rounded-full p-2.5 text-slate-500 transition duration-150 active:scale-90 active:bg-white/10 active:text-slate-300"
                   aria-label="刷新今日复习"
                 >
-                  <FiRefreshCw aria-hidden="true" size={16} />
+                  <FiRefreshCw aria-hidden="true" size={17} />
                 </button>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/8 pt-4 text-xs">
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/8 pt-4 text-sm">
                 <div>
-                  <div className="text-slate-500">主动回忆</div>
+                  <div className="text-slate-500">看义写词</div>
                   <div className="mt-1 text-slate-300">
                     {snapshot.settings.productionEnabled ? "已启用" : "已关闭"}
                   </div>
@@ -303,12 +302,12 @@ export function MobileStudyHome() {
 
             <div className="mt-auto space-y-3 pt-8">
               {total > 0 && reviewHref ? (
-                <a
+                <Link
                   href={reviewHref}
-                  className="block w-full rounded-[22px] bg-sky-400 px-5 py-4 text-center text-base font-semibold text-slate-950 transition active:scale-[0.99]"
+                  className="block w-full rounded-[22px] bg-sky-400 px-5 py-4 text-center text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90"
                 >
                   开始复习 · {total}
-                </a>
+                </Link>
               ) : (
                 <div className="w-full rounded-[22px] border border-emerald-400/15 bg-emerald-400/8 px-5 py-4 text-center text-base font-semibold text-emerald-200">
                   今日已完成
@@ -317,14 +316,14 @@ export function MobileStudyHome() {
 
               {practiceHref && (
                 <>
-                  <a
+                  <Link
                     href={practiceHref}
-                    className="block w-full rounded-[22px] border border-white/12 bg-white/[0.055] px-5 py-3.5 text-center text-sm font-semibold text-slate-200 transition active:scale-[0.99]"
+                    className="block w-full rounded-[22px] border border-white/12 bg-white/[0.055] px-5 py-3.5 text-center text-base font-semibold text-slate-200 transition duration-150 active:scale-[0.97] active:bg-white/[0.1]"
                   >
                     自由复习
-                  </a>
-                  <p className="text-center text-[11px] leading-5 text-slate-600">
-                    只复习已经学过的词，不改变 FSRS 排程
+                  </Link>
+                  <p className="text-center text-xs leading-5 text-slate-600">
+                    只复习已经学过的词，不改变正式复习间隔
                   </p>
                 </>
               )}
@@ -345,7 +344,7 @@ export function MobileStudyHome() {
                   type="button"
                   onClick={() => void initializeProgress()}
                   disabled={initializing}
-                  className="mt-4 w-full rounded-[20px] bg-white px-4 py-3.5 text-sm font-semibold text-slate-950 disabled:opacity-50"
+                  className="mt-4 w-full rounded-[20px] bg-white px-4 py-3.5 text-sm font-semibold text-slate-950 transition duration-150 active:scale-[0.97] disabled:opacity-50"
                 >
                   {initializing ? "正在保存…" : "以当前已录入内容初始化"}
                 </button>
@@ -358,8 +357,8 @@ export function MobileStudyHome() {
           </section>
         ) : null}
 
-        <footer className="mt-8 text-center text-[10px] uppercase tracking-[0.18em] text-slate-700">
-          local-first · fsrs
+        <footer className="mt-8 text-center text-xs tracking-[0.12em] text-slate-700">
+          本地优先 · 间隔复习
         </footer>
       </div>
     </main>
