@@ -1,66 +1,67 @@
 {
-  "schemaVersion": 1,
-  "textbookId": "bonjour-francais",
+  "schemaVersion": 2,
+  "languageId": "fr",
+  "collectionId": "bonjour-francais",
   "book": 1,
   "unit": 1,
   "lesson": 4,
   "entries": [
     {
-      "id": "b1-u1-l4-dentiste",
+      "id": "fr:bonjour-francais:b1-u1-l4-dentiste",
       "lemma": "dentiste",
       "ipa": "/dɑ̃.tist/",
       "meaningsZh": ["牙医"],
       "partOfSpeech": "nom",
-      "source": { "book": 1, "unit": 1, "lesson": 4 },
+      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
       "tags": ["profession"]
     },
     {
-      "id": "b1-u1-l4-adresse",
+      "id": "fr:bonjour-francais:b1-u1-l4-adresse",
       "lemma": "adresse",
       "ipa": "/a.dʁɛs/",
       "meaningsZh": ["地址"],
       "partOfSpeech": "nom",
-      "gender": "feminine",
-      "source": { "book": 1, "unit": 1, "lesson": 4 },
+      "grammar": { "gender": "feminine" },
+      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
       "tags": ["identity"]
     },
     {
-      "id": "b1-u1-l4-telephone",
+      "id": "fr:bonjour-francais:b1-u1-l4-telephone",
       "lemma": "téléphone",
       "ipa": "/te.le.fɔn/",
       "meaningsZh": ["电话", "电话机"],
       "partOfSpeech": "nom",
-      "gender": "masculine",
-      "source": { "book": 1, "unit": 1, "lesson": 4 },
+      "grammar": { "gender": "masculine" },
+      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
       "tags": ["identity"]
     },
     {
-      "id": "b1-u1-l4-professeur",
+      "id": "fr:bonjour-francais:b1-u1-l4-professeur",
       "lemma": "professeur",
       "ipa": "/pʁɔ.fɛ.sœʁ/",
       "meaningsZh": ["教师", "老师"],
       "partOfSpeech": "nom",
-      "source": { "book": 1, "unit": 1, "lesson": 4 },
+      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
       "tags": ["profession"]
     },
     {
-      "id": "b1-u1-l4-italien",
+      "id": "fr:bonjour-francais:b1-u1-l4-italien",
       "lemma": "italien",
       "ipa": "/i.ta.ljɛ̃/",
       "meaningsZh": ["意大利的", "意大利人"],
       "partOfSpeech": "adjectif / nom",
-      "forms": { "feminine": "italienne" },
-      "source": { "book": 1, "unit": 1, "lesson": 4 },
+      "grammar": { "forms": { "feminine": "italienne" } },
+      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
       "tags": ["nationality"]
     },
     {
-      "id": "b1-u1-l4-francais",
+      "id": "fr:bonjour-francais:b1-u1-l4-francais",
       "lemma": "français",
       "ipa": "/fʁɑ̃.sɛ/",
       "meaningsZh": ["法国的", "法国人", "法语"],
       "partOfSpeech": "adjectif / nom",
-      "forms": { "feminine": "française" },
-      "source": { "book": 1, "unit": 1, "lesson": 4 },
+      "grammar": { "forms": { "feminine": "française" } },
+      "source": { "kind": "textbook", "languageId": "fr", "collectionId": "bonjour-francais", "book": 1, "unit": 1, "lesson": 4 },
       "tags": ["nationality", "language"]
     }
   ]
