@@ -49,19 +49,21 @@ function validateEntry(
     );
   }
 
-  if (!isRecord(value.source)) {
-    throw new Error(`entries[${index}].source must be an object`);
-  }
+  if (value.source !== undefined) {
+    if (!isRecord(value.source)) {
+      throw new Error(`entries[${index}].source must be an object`);
+    }
 
-  if (
-    value.source.kind !== "textbook" ||
-    value.source.languageId !== lesson.languageId ||
-    value.source.collectionId !== lesson.collectionId ||
-    value.source.book !== lesson.book ||
-    value.source.unit !== lesson.unit ||
-    value.source.lesson !== lesson.lesson
-  ) {
-    throw new Error(`entries[${index}].source must match its lesson file`);
+    if (
+      value.source.kind !== "textbook" ||
+      value.source.languageId !== lesson.languageId ||
+      value.source.collectionId !== lesson.collectionId ||
+      value.source.book !== lesson.book ||
+      value.source.unit !== lesson.unit ||
+      value.source.lesson !== lesson.lesson
+    ) {
+      throw new Error(`entries[${index}].source must match its lesson file`);
+    }
   }
 
   if (value.grammar !== undefined && !isRecord(value.grammar)) {
@@ -91,12 +93,27 @@ function validateEntry(
     );
   }
 
-  return value as VocabularyEntry;
+  const source = {
+    kind: "textbook" as const,
+    languageId: lesson.languageId,
+    collectionId: lesson.collectionId,
+    book: lesson.book,
+    unit: lesson.unit,
+    lesson: lesson.lesson,
+    ...(isRecord(value.source) && typeof value.source.section === "string"
+      ? { section: value.source.section }
+      : {}),
+  };
+
+  return {
+    ...(value as Omit<VocabularyEntry, "source">),
+    source,
+  };
 }
 
 export function validateLessonData(value: unknown): TextbookLessonData {
   if (!isRecord(value)) throw new Error("lesson data must be an object");
-  if (value.schemaVersion !== 2) {
+  if (value.schemaVersion !== 3) {
     throw new Error("unsupported textbook schemaVersion");
   }
   assertNonEmptyString(value.languageId, "languageId");
@@ -104,6 +121,9 @@ export function validateLessonData(value: unknown): TextbookLessonData {
   assertPositiveInteger(value.book, "book");
   assertPositiveInteger(value.unit, "unit");
   assertPositiveInteger(value.lesson, "lesson");
+  if (value.coverage !== "complete" && value.coverage !== "partial") {
+    throw new Error("coverage must be complete or partial");
+  }
   if (!Array.isArray(value.entries)) throw new Error("entries must be an array");
 
   const lesson = {
@@ -123,8 +143,9 @@ export function validateLessonData(value: unknown): TextbookLessonData {
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     ...lesson,
+    coverage: value.coverage,
     entries,
   };
 }
