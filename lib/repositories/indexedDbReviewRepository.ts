@@ -1,10 +1,10 @@
 import type { ReviewEvent, ReviewItem } from "../../domain/review/types";
 import {
-  getReviewDb,
-  type ReviewDb,
+  getLanguageStudyDb,
+  type LanguageStudyDb,
   type StoredReviewItem,
   type StoredReviewStateRow,
-} from "../storage/reviewDb";
+} from "../storage/studyDb";
 import type { ReviewRepository, StoredReviewState } from "./reviewRepository";
 
 function stripItemMetadata(item: StoredReviewItem): ReviewItem {
@@ -32,7 +32,7 @@ function earliestIntroducedAt(items: readonly StoredReviewItem[]): number | unde
 }
 
 export class IndexedDbReviewRepository implements ReviewRepository {
-  constructor(private readonly db: ReviewDb = getReviewDb()) {}
+  constructor(private readonly db: LanguageStudyDb = getLanguageStudyDb()) {}
 
   async upsertItems(items: ReviewItem[]): Promise<void> {
     if (items.length === 0) return;
@@ -73,11 +73,16 @@ export class IndexedDbReviewRepository implements ReviewRepository {
   async getItems(ids: readonly string[]): Promise<ReviewItem[]> {
     if (ids.length === 0) return [];
     const items = await this.db.reviewItems.bulkGet([...ids]);
-    return items.filter((item): item is StoredReviewItem => Boolean(item)).map(stripItemMetadata);
+    return items
+      .filter((item): item is StoredReviewItem => Boolean(item))
+      .map(stripItemMetadata);
   }
 
   async listItemsForVocabulary(vocabularyId: string): Promise<ReviewItem[]> {
-    const items = await this.db.reviewItems.where("vocabularyId").equals(vocabularyId).toArray();
+    const items = await this.db.reviewItems
+      .where("vocabularyId")
+      .equals(vocabularyId)
+      .toArray();
     return items.map(stripItemMetadata);
   }
 
@@ -115,7 +120,10 @@ export class IndexedDbReviewRepository implements ReviewRepository {
   }
 
   async listDueStates(dueThrough: number): Promise<StoredReviewState[]> {
-    const states = await this.db.reviewStates.where("due").belowOrEqual(dueThrough).toArray();
+    const states = await this.db.reviewStates
+      .where("due")
+      .belowOrEqual(dueThrough)
+      .toArray();
     return states.map(stripStateMetadata);
   }
 
@@ -149,7 +157,10 @@ export class IndexedDbReviewRepository implements ReviewRepository {
         await this.db.reviewItems.bulkPut(
           siblings.map((item) => ({
             ...item,
-            introducedAt: Math.min(item.introducedAt ?? introducedAt, introducedAt),
+            introducedAt: Math.min(
+              item.introducedAt ?? introducedAt,
+              introducedAt
+            ),
             updatedAt: now,
           }))
         );
