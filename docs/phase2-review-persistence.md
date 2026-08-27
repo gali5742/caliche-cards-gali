@@ -1,38 +1,34 @@
 # Phase 2 review persistence
 
-This phase persists the new textbook review runtime without modifying Caliche's legacy study database.
+This phase persists the native review runtime without modifying Caliche's legacy study database.
 
 ## Database
 
-The native textbook runtime uses one separate Dexie database:
+The native runtime uses one language-agnostic Dexie database:
 
-- name: `bonjour-francais-review`
-- current schema version: `3`
+- name: `language-study`
+- schema version: `1`
 
-Schema history:
+This database name replaces the earlier pre-release `bonjour-francais-review` name. No migration is provided because the application has not entered real use yet; resetting now avoids carrying a textbook-specific storage identity forward.
 
-- v1: `reviewItems`, `reviewStates`, `reviewEvents`
-- v2: adds `introducedAt` metadata for daily new-vocabulary accounting
-- v3: adds `progress` and `settings`
-
-Current tables:
+Tables:
 
 - `reviewItems`: stable derived review identities and enabled state
 - `reviewStates`: one independent FSRS state per ReviewItem
 - `reviewEvents`: append-only review history
-- `progress`: persisted textbook learning position, keyed by book
+- `progress`: persisted textbook learning position, keyed by language + collection + book
 - `settings`: persisted study settings
 
-Textbook vocabulary content is not copied into this database. `VocabularyEntry` remains owned by the native textbook data layer.
+Vocabulary content is not copied into this database. `VocabularyEntry` remains owned by the content data layer.
 
 ## State ownership
 
 Each ReviewItem owns exactly one scheduling state. For example:
 
-- `b1-u1-l4-francaise:recognition`
-- `b1-u1-l4-francaise:production`
+- `fr:bonjour-francais:b1-u1-l4-francais:recognition`
+- `fr:bonjour-francais:b1-u1-l4-francais:production`
 
-These rows can therefore diverge in due date, stability, difficulty, repetitions, and lapses.
+These rows can therefore diverge in due date, stability, difficulty, repetitions, and lapses while remaining collision-safe across collections and languages.
 
 ## Review transaction
 
@@ -51,7 +47,7 @@ A completed answer writes two things:
 2. loads existing states
 3. creates an initial FSRS state only for items that do not have one
 
-Existing progress is therefore preserved when textbook data is reloaded.
+Existing progress is therefore preserved when content data is reloaded.
 
 ## Deliberate boundaries
 
