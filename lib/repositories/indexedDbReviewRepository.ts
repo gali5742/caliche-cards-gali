@@ -1,17 +1,27 @@
 import type { ReviewEvent, ReviewItem } from "../../domain/review/types";
-import { getReviewDb, type ReviewDb } from "../storage/reviewDb";
+import {
+  getReviewDb,
+  type ReviewDb,
+  type StoredReviewItem,
+  type StoredReviewStateRow,
+} from "../storage/reviewDb";
 import type { ReviewRepository, StoredReviewState } from "./reviewRepository";
 
-function stripItemMetadata(item: ReviewItem & { updatedAt?: number }): ReviewItem {
-  const { updatedAt: _updatedAt, ...reviewItem } = item;
-  return reviewItem;
+function stripItemMetadata(item: StoredReviewItem): ReviewItem {
+  return {
+    id: item.id,
+    vocabularyId: item.vocabularyId,
+    skill: item.skill,
+    enabled: item.enabled,
+  };
 }
 
-function stripStateMetadata(
-  state: StoredReviewState & { updatedAt?: number }
-): StoredReviewState {
-  const { updatedAt: _updatedAt, ...storedState } = state;
-  return storedState;
+function stripStateMetadata(state: StoredReviewStateRow): StoredReviewState {
+  return {
+    reviewItemId: state.reviewItemId,
+    due: state.due,
+    state: state.state,
+  };
 }
 
 export class IndexedDbReviewRepository implements ReviewRepository {
