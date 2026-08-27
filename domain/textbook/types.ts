@@ -11,10 +11,13 @@ export type LearningProgress = ContentCollectionRef & {
   unlockedThrough: LessonPosition;
 };
 
+export type TextbookLessonCoverage = "complete" | "partial";
+
 export type TextbookLessonData = ContentCollectionRef & {
-  schemaVersion: 2;
+  schemaVersion: 3;
   book: number;
   unit: number;
   lesson: number;
+  coverage: TextbookLessonCoverage;
   entries: VocabularyEntry[];
 };
