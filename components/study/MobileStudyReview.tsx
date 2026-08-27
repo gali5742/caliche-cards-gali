@@ -22,17 +22,16 @@ import { listRegisteredCollections } from "../../lib/textbook/registry";
 const RATINGS: Array<{
   rating: ReviewRating;
   label: string;
-  hint: string;
 }> = [
-  { rating: "again", label: "忘了", hint: "Again" },
-  { rating: "hard", label: "困难", hint: "Hard" },
-  { rating: "good", label: "记得", hint: "Good" },
-  { rating: "easy", label: "很熟", hint: "Easy" },
+  { rating: "again", label: "忘了" },
+  { rating: "hard", label: "困难" },
+  { rating: "good", label: "记得" },
+  { rating: "easy", label: "很熟" },
 ];
 
 function queueKindLabel(kind: "due" | "continuation" | "new"): string {
   if (kind === "due") return "到期复习";
-  if (kind === "continuation") return "继续学习";
+  if (kind === "continuation") return "继续巩固";
   return "新词";
 }
 
@@ -171,9 +170,12 @@ export function MobileStudyReview({
 
   if (error && !session) {
     return (
-      <main className="min-h-[100dvh] bg-[#07111d] px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] text-slate-100">
+      <main className="min-h-[100dvh] bg-[#07111d] px-5 pt-[calc(env(safe-area-inset-top)+0.9rem)] text-slate-100">
         <div className="mx-auto w-full max-w-[430px]">
-          <Link href="/study" className="inline-flex items-center gap-2 text-sm text-slate-400">
+          <Link
+            href="/study"
+            className="inline-flex items-center gap-2 rounded-full py-2 text-base text-slate-400 transition active:scale-95 active:text-slate-200"
+          >
             <FiArrowLeft aria-hidden="true" /> 返回首页
           </Link>
           <div className="mt-8 rounded-[26px] border border-rose-400/20 bg-rose-400/10 p-5 text-sm leading-6 text-rose-200">
@@ -186,9 +188,12 @@ export function MobileStudyReview({
 
   if (!session) {
     return (
-      <main className="min-h-[100dvh] bg-[#07111d] px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] text-slate-100">
+      <main className="min-h-[100dvh] bg-[#07111d] px-5 pt-[calc(env(safe-area-inset-top)+0.9rem)] text-slate-100">
         <div className="mx-auto w-full max-w-[430px]">
-          <Link href="/study" className="inline-flex items-center gap-2 text-sm text-slate-400">
+          <Link
+            href="/study"
+            className="inline-flex items-center gap-2 rounded-full py-2 text-base text-slate-400 transition active:scale-95 active:text-slate-200"
+          >
             <FiArrowLeft aria-hidden="true" /> 返回首页
           </Link>
           <div className="mt-8 rounded-[26px] border border-white/10 bg-white/[0.05] p-5">
@@ -205,9 +210,12 @@ export function MobileStudyReview({
   if (complete || !current) {
     const emptyPractice = isPractice && total === 0;
     return (
-      <main className="min-h-[100dvh] bg-[#07111d] px-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] text-slate-100">
+      <main className="min-h-[100dvh] bg-[#07111d] px-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+0.9rem)] text-slate-100">
         <div className="mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-[430px] flex-col">
-          <Link href="/study" className="inline-flex items-center gap-2 text-sm text-slate-400">
+          <Link
+            href="/study"
+            className="inline-flex items-center gap-2 rounded-full py-2 text-base text-slate-400 transition active:scale-95 active:text-slate-200"
+          >
             <FiArrowLeft aria-hidden="true" /> 返回首页
           </Link>
           <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -225,12 +233,12 @@ export function MobileStudyReview({
               {emptyPractice
                 ? "自由复习只使用已经进入学习记录的词。完成至少一张计划复习后，这里就会出现内容。"
                 : isPractice
-                  ? `本轮浏览了 ${total} 个已学技能；这些评分没有改变 FSRS 排程。`
+                  ? `本轮浏览了 ${total} 个已学项目；这些选择没有改变正式复习排程。`
                   : `已完成这次打开复习页时排入的 ${total} 个任务。之后到期的短间隔任务会再次出现在首页。`}
             </p>
             <Link
               href="/study"
-              className="mt-7 w-full max-w-[280px] rounded-[20px] bg-white px-5 py-3.5 text-sm font-semibold text-slate-950"
+              className="mt-7 w-full max-w-[280px] rounded-[20px] bg-white px-5 py-3.5 text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90"
             >
               回到今日首页
             </Link>
@@ -246,16 +254,16 @@ export function MobileStudyReview({
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-[calc(env(safe-area-inset-top)+1rem)]">
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <header>
           <div className="flex items-center justify-between gap-4">
             <Link
               href="/study"
-              className="inline-flex items-center gap-2 rounded-full py-2 text-sm text-slate-400"
+              className="inline-flex items-center gap-2 rounded-full py-2 text-base text-slate-400 transition duration-150 active:scale-95 active:text-slate-200"
             >
               <FiArrowLeft aria-hidden="true" /> 结束本轮
             </Link>
-            <div className="text-xs tabular-nums text-slate-500">
+            <div className="text-sm tabular-nums text-slate-500">
               {index + 1} / {total}
             </div>
           </div>
@@ -265,17 +273,17 @@ export function MobileStudyReview({
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <div className="mt-4 flex items-center justify-between gap-3 text-[11px]">
-            <span className="rounded-full bg-white/6 px-2.5 py-1 text-slate-400">
+          <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+            <span className="rounded-full bg-white/6 px-3 py-1.5 text-slate-300">
               {isPractice ? "自由复习" : queueKindLabel(current.kind)}
             </span>
-            <span className="text-slate-600">
-              {isRecognition ? "recognition" : "production"}
+            <span className="text-slate-500">
+              {isRecognition ? "看词想义" : "看义写词"}
             </span>
           </div>
           {isPractice && (
-            <div className="mt-3 text-center text-[11px] text-slate-600">
-              本轮不会写入 FSRS 评分或改变下次到期时间
+            <div className="mt-3 text-center text-sm text-slate-500">
+              本轮不会写入正式评分，也不会改变下次复习时间
             </div>
           )}
         </header>
@@ -286,26 +294,28 @@ export function MobileStudyReview({
           </div>
         )}
 
-        <section className="flex flex-1 flex-col justify-center py-8">
+        <section className="flex flex-1 flex-col justify-center py-7">
           {isRecognition ? (
             <>
               <div className="text-center">
-                <div className="text-[34px] font-semibold tracking-[-0.04em] text-white">
+                <div className="text-[36px] font-semibold tracking-[-0.04em] text-white">
                   {current.vocabulary.lemma}
                 </div>
                 {current.vocabulary.ipa && (
-                  <div className="mt-2 text-base text-slate-500">
+                  <div className="mt-2 text-lg text-slate-400">
                     {current.vocabulary.ipa}
                   </div>
                 )}
-                <div className="mt-3 text-xs text-slate-600">回忆它的含义</div>
+                <div className="mt-4 text-base font-medium text-slate-300">
+                  回忆这个词的含义
+                </div>
               </div>
 
               {!revealed ? (
                 <button
                   type="button"
                   onClick={() => setRevealed(true)}
-                  className="mt-10 w-full rounded-[22px] bg-white px-5 py-4 text-base font-semibold text-slate-950"
+                  className="mt-10 w-full rounded-[22px] bg-white px-5 py-4 text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90"
                 >
                   <span className="inline-flex items-center gap-2">
                     <FiEye aria-hidden="true" /> 显示答案
@@ -313,12 +323,12 @@ export function MobileStudyReview({
                 </button>
               ) : (
                 <div className="mt-10 rounded-[28px] border border-white/10 bg-white/[0.05] p-5 text-center">
-                  <div className="text-xs text-slate-500">答案</div>
-                  <div className="mt-2 text-xl font-medium leading-8 text-white">
+                  <div className="text-sm font-medium text-slate-400">答案</div>
+                  <div className="mt-2 text-2xl font-medium leading-9 text-white">
                     {current.vocabulary.meaningsZh.join("；")}
                   </div>
-                  <div className="mt-3 text-xs text-slate-600">
-                    {current.vocabulary.partOfSpeech}
+                  <div className="mt-4 text-base text-slate-400">
+                    词性 · {current.vocabulary.partOfSpeech}
                   </div>
                 </div>
               )}
@@ -326,12 +336,14 @@ export function MobileStudyReview({
           ) : (
             <>
               <div className="text-center">
-                <div className="text-xs text-slate-500">根据含义写出词条原形</div>
-                <div className="mt-4 text-[28px] font-semibold leading-10 tracking-[-0.03em] text-white">
+                <div className="text-base font-medium text-slate-300">
+                  根据含义写出词条原形
+                </div>
+                <div className="mt-4 text-[30px] font-semibold leading-10 tracking-[-0.03em] text-white">
                   {current.vocabulary.meaningsZh.join("；")}
                 </div>
-                <div className="mt-2 text-xs text-slate-600">
-                  {current.vocabulary.partOfSpeech}
+                <div className="mt-3 text-base text-slate-400">
+                  词性 · {current.vocabulary.partOfSpeech}
                 </div>
               </div>
 
@@ -354,10 +366,10 @@ export function MobileStudyReview({
                   autoCapitalize="none"
                   spellCheck={false}
                   enterKeyHint="done"
-                  placeholder="输入外语原形"
-                  className="w-full rounded-[22px] border border-white/12 bg-white/[0.055] px-4 py-4 text-center text-xl text-white outline-none placeholder:text-sm placeholder:text-slate-700 focus:border-sky-400/50 disabled:opacity-75"
+                  placeholder="输入词条原形"
+                  className="w-full rounded-[22px] border border-white/12 bg-white/[0.055] px-4 py-4 text-center text-2xl text-white outline-none placeholder:text-base placeholder:text-slate-600 focus:border-sky-400/50 disabled:opacity-75"
                 />
-                <p className="mt-2 text-center text-[11px] leading-5 text-slate-600">
+                <p className="mt-3 text-center text-sm leading-6 text-slate-500">
                   大小写与多余空格不计；重音、变音符号和拼写必须一致
                 </p>
               </div>
@@ -367,7 +379,7 @@ export function MobileStudyReview({
                   <button
                     type="button"
                     onClick={() => setProductionChecked(true)}
-                    className="rounded-[20px] border border-white/10 bg-white/[0.05] px-4 py-3.5 text-sm font-medium text-slate-300"
+                    className="rounded-[20px] border border-white/10 bg-white/[0.05] px-4 py-3.5 text-base font-medium text-slate-300 transition duration-150 active:scale-[0.96] active:bg-white/[0.1]"
                   >
                     不会 / 看答案
                   </button>
@@ -375,7 +387,7 @@ export function MobileStudyReview({
                     type="button"
                     onClick={() => setProductionChecked(true)}
                     disabled={!answer.trim()}
-                    className="rounded-[20px] bg-white px-4 py-3.5 text-sm font-semibold text-slate-950 disabled:opacity-35"
+                    className="rounded-[20px] bg-white px-4 py-3.5 text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.96] active:brightness-90 disabled:opacity-35"
                   >
                     检查答案
                   </button>
@@ -389,7 +401,7 @@ export function MobileStudyReview({
                   }`}
                 >
                   <div
-                    className={`inline-flex items-center gap-2 text-sm font-medium ${
+                    className={`inline-flex items-center gap-2 text-base font-medium ${
                       productionCorrect ? "text-emerald-300" : "text-amber-200"
                     }`}
                   >
@@ -400,16 +412,16 @@ export function MobileStudyReview({
                     )}
                     {productionCorrect ? "输入正确" : "与词条原形不同"}
                   </div>
-                  <div className="mt-4 text-2xl font-semibold text-white">
+                  <div className="mt-4 text-3xl font-semibold text-white">
                     {current.vocabulary.lemma}
                   </div>
                   {current.vocabulary.ipa && (
-                    <div className="mt-1 text-sm text-slate-500">
+                    <div className="mt-1 text-base text-slate-400">
                       {current.vocabulary.ipa}
                     </div>
                   )}
                   {!productionCorrect && answer.trim() && (
-                    <div className="mt-3 text-xs text-slate-500">
+                    <div className="mt-3 text-sm text-slate-500">
                       你的输入：{answer}
                     </div>
                   )}
@@ -421,9 +433,9 @@ export function MobileStudyReview({
 
         {canRate && (
           <section className="border-t border-white/8 pt-4">
-            <div className="mb-3 text-center text-[11px] text-slate-600">
+            <div className="mb-3 text-center text-sm text-slate-500">
               {isPractice
-                ? "选择体感难度后继续；不会计入 FSRS"
+                ? "选择体感难度后继续；不会计入正式排程"
                 : "根据实际回忆难度评分"}
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -433,13 +445,10 @@ export function MobileStudyReview({
                   type="button"
                   onClick={() => void submitRating(option.rating)}
                   disabled={submitting}
-                  className="rounded-[18px] border border-white/10 bg-white/[0.055] px-1 py-3 text-center transition active:scale-[0.98] disabled:opacity-40"
+                  className="min-h-16 rounded-[18px] border border-white/10 bg-white/[0.055] px-1 py-3 text-center transition duration-150 active:scale-[0.94] active:bg-white/[0.12] disabled:opacity-40"
                 >
-                  <div className="text-sm font-medium text-slate-200">
+                  <div className="text-base font-medium text-slate-200">
                     {option.label}
-                  </div>
-                  <div className="mt-1 text-[9px] uppercase tracking-wide text-slate-600">
-                    {option.hint}
                   </div>
                 </button>
               ))}
