@@ -1,11 +1,40 @@
 import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import { listRegisteredLessons } from "../textbook/registry";
-import type { VocabularyLessonRef, VocabularyRepository } from "./vocabularyRepository";
+import type {
+  VocabularyLessonRef,
+  VocabularyRepository,
+} from "./vocabularyRepository";
 
 function compareLesson(a: VocabularyLessonRef, b: VocabularyLessonRef): number {
   if (a.book !== b.book) return a.book - b.book;
   if (a.unit !== b.unit) return a.unit - b.unit;
   return a.lesson - b.lesson;
+}
+
+function getLessonRef(entry: VocabularyEntry): VocabularyLessonRef | null {
+  const { source } = entry;
+  if (
+    source.kind !== "textbook" ||
+    source.book === undefined ||
+    source.unit === undefined ||
+    source.lesson === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    languageId: source.languageId,
+    collectionId: source.collectionId,
+    book: source.book,
+    unit: source.unit,
+    lesson: source.lesson,
+  };
+}
+
+function sameCollection(a: VocabularyLessonRef, b: VocabularyLessonRef): boolean {
+  return (
+    a.languageId === b.languageId && a.collectionId === b.collectionId
+  );
 }
 
 export class StaticVocabularyRepository implements VocabularyRepository {
@@ -20,32 +49,33 @@ export class StaticVocabularyRepository implements VocabularyRepository {
   }
 
   async listByLesson(ref: VocabularyLessonRef): Promise<VocabularyEntry[]> {
-    return this.entries.filter(
-      (entry) =>
-        entry.source.book === ref.book &&
-        entry.source.unit === ref.unit &&
-        entry.source.lesson === ref.lesson
-    );
+    return this.entries.filter((entry) => {
+      const entryRef = getLessonRef(entry);
+      return entryRef !== null && sameCollection(entryRef, ref) && compareLesson(entryRef, ref) === 0;
+    });
   }
 
   async listUnlocked(ref: VocabularyLessonRef): Promise<VocabularyEntry[]> {
-    return this.entries.filter((entry) => compareLesson(entry.source, ref) <= 0);
+    return this.entries.filter((entry) => {
+      const entryRef = getLessonRef(entry);
+      return entryRef !== null && sameCollection(entryRef, ref) && compareLesson(entryRef, ref) <= 0;
+    });
   }
 
   async search(query: string): Promise<VocabularyEntry[]> {
-    const normalized = query.trim().toLocaleLowerCase("fr");
+    const normalized = query.trim().toLocaleLowerCase();
     if (!normalized) return [];
 
     return this.entries.filter((entry) => {
       const haystack = [
         entry.lemma,
-        entry.ipa,
+        entry.ipa ?? "",
         entry.partOfSpeech,
         ...entry.meaningsZh,
         ...(entry.tags ?? []),
       ]
         .join("\n")
-        .toLocaleLowerCase("fr");
+        .toLocaleLowerCase();
 
       return haystack.includes(normalized);
     });
