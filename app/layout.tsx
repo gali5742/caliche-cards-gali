@@ -24,9 +24,9 @@ const display = Unbounded({
 });
 
 export const metadata: Metadata = {
-  title: "Caliche Cards",
-  description: "Anki-style PWA for reviewing flashcards.",
-  applicationName: "Caliche Cards",
+  title: "Language Study",
+  description: "Local-first language vocabulary review powered by FSRS.",
+  applicationName: "Language Study",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -39,8 +39,8 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Caliche Cards",
+    statusBarStyle: "black-translucent",
+    title: "Study",
   },
 };
 
@@ -50,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh-CN" suppressHydrationWarning>
       <body
         className={`${sans.variable} ${mono.variable} ${display.variable} antialiased`}
         suppressHydrationWarning
