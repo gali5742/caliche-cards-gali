@@ -1,8 +1,9 @@
 // Bump this when changing caching behavior to ensure old caches are dropped.
-const CACHE_NAME = "caliche-cards-v4";
+const CACHE_NAME = "language-study-v1";
 
 const PRECACHE_URLS = [
   "/",
+  "/study",
   "/manifest.webmanifest",
   "/sql-wasm.wasm",
   "/favicon.ico",
@@ -13,6 +14,10 @@ const PRECACHE_URLS = [
   "/icon",
   "/apple-icon",
 ];
+
+function shellFallbackPath(pathname) {
+  return pathname.startsWith("/study") ? "/study" : "/";
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -46,13 +51,9 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  // Avoid caching Next.js RSC/data requests too aggressively.
   const url = new URL(request.url);
-  // Never cache API responses.
   if (url.pathname.startsWith("/api/")) return;
 
-  // Icons: try cache first, then network. Never block the app going offline
-  // just because a favicon can't be fetched.
   if (
     url.pathname === "/favicon.ico" ||
     url.pathname === "/favicon-16x16.png" ||
@@ -84,9 +85,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // For navigations: try network with a SHORT timeout, then fall back to
-  // the cached shell. Without the timeout, Safari hangs for 30-60 s on iOS
-  // before surfacing its own "no connection" page — the SW fallback never runs.
+  // iOS Safari can wait tens of seconds before failing an offline navigation.
+  // Use a short timeout, then serve the route-specific cached shell.
   if (request.mode === "navigate") {
     event.respondWith(
       (async () => {
@@ -100,21 +100,23 @@ self.addEventListener("fetch", (event) => {
           } finally {
             clearTimeout(timeoutId);
           }
-          // Keep the cached shell up-to-date while online.
+
           if (response && response.status === 200) {
-            cache.put(new Request("/"), response.clone());
+            cache.put(request, response.clone());
           }
           return response;
         } catch {
-          // Network failed or timed out — serve the cached shell.
-          const cached = await cache.match("/");
-          if (cached) return cached;
+          const exact = await cache.match(request);
+          if (exact) return exact;
+          const shell = await cache.match(shellFallbackPath(url.pathname));
+          if (shell) return shell;
           return Response.error();
         }
       })()
     );
     return;
   }
+
   if (url.pathname.startsWith("/_next/image")) return;
 
   if (url.pathname.startsWith("/_next/static")) {
@@ -141,14 +143,12 @@ self.addEventListener("fetch", (event) => {
 
       try {
         const response = await fetch(request);
-        // Cache basic successful same-origin responses
         if (response && response.status === 200 && url.origin === self.location.origin) {
           cache.put(request, response.clone());
         }
         return response;
       } catch (err) {
-        // Offline fallback: cached root if available
-        const fallback = await cache.match("/");
+        const fallback = await cache.match(shellFallbackPath(url.pathname));
         if (fallback) return fallback;
         throw err;
       }
