@@ -1,7 +1,10 @@
 import type { ReviewSkill } from "../../domain/review/types";
 import type { StudySettings } from "../../domain/settings/types";
 import type { LearningProgress } from "../../domain/textbook/types";
-import type { ProgressRepository } from "../repositories/progressRepository";
+import type {
+  LearningProgressRef,
+  ProgressRepository,
+} from "../repositories/progressRepository";
 import type { SettingsRepository } from "../repositories/settingsRepository";
 import type { FsrsSchedulerConfig } from "../srs/fsrsTypes";
 import {
@@ -19,12 +22,12 @@ export type StudyRuntimeConfig = {
 };
 
 export async function loadStudyRuntimeConfig(input: {
-  book: number;
+  progressRef: LearningProgressRef;
   progressRepository: ProgressRepository;
   settingsRepository: SettingsRepository;
 }): Promise<StudyRuntimeConfig> {
   const [progress, settings] = await Promise.all([
-    loadLearningProgress(input.book, input.progressRepository),
+    loadLearningProgress(input.progressRef, input.progressRepository),
     loadStudySettings(input.settingsRepository),
   ]);
 
