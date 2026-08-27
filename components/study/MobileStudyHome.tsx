@@ -139,6 +139,14 @@ export function MobileStudyHome() {
 
   const queue = snapshot?.queue;
   const total = queue?.totalItems ?? 0;
+  const reviewHref =
+    selectedCollection && selectedBook !== null
+      ? `/study/review?language=${encodeURIComponent(
+          selectedCollection.languageId
+        )}&collection=${encodeURIComponent(
+          selectedCollection.collectionId
+        )}&book=${selectedBook}`
+      : null;
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
@@ -284,17 +292,21 @@ export function MobileStudyHome() {
             </section>
 
             <div className="mt-auto pt-8">
-              <button
-                type="button"
-                disabled
-                className="w-full rounded-[22px] bg-sky-400 px-5 py-4 text-base font-semibold text-slate-950 opacity-60"
-              >
-                {total > 0 ? `开始复习 · ${total}` : "今日已完成"}
-              </button>
-              {total > 0 && (
-                <p className="mt-2 text-center text-[11px] text-slate-600">
-                  答题界面将在下一步接入
-                </p>
+              {total > 0 && reviewHref ? (
+                <a
+                  href={reviewHref}
+                  className="block w-full rounded-[22px] bg-sky-400 px-5 py-4 text-center text-base font-semibold text-slate-950 transition active:scale-[0.99]"
+                >
+                  开始复习 · {total}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full rounded-[22px] bg-white/10 px-5 py-4 text-base font-semibold text-slate-500"
+                >
+                  今日已完成
+                </button>
               )}
             </div>
           </>
