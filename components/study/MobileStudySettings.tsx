@@ -122,13 +122,13 @@ export function MobileStudySettings() {
 
         {loading || !draft ? (
           <div className="flex flex-1 items-center justify-center py-20 text-sm text-slate-500">
-            正在读取本地设置…
+            正在读取设置…
           </div>
         ) : (
           <div className="mt-7 space-y-4">
             <SettingsSection
               title="每日新词"
-              description="每天默认加入这一组新词；已经到期的复习和继续学习不受这个数字影响。完成后仍可临时再学一组。"
+              description="每天先加入这一组新词，完成后可继续加组。"
             >
               <div className="flex items-center justify-between gap-4">
                 <label htmlFor="daily-new-limit" className="text-base text-slate-200">
@@ -167,15 +167,15 @@ export function MobileStudySettings() {
 
             <SettingsSection
               title="主动回忆"
-              description="开启后，同一个词除了“看词想义”，还会安排“看义写词”的输出练习。两种能力分别计算复习间隔。"
+              description="开启后增加“看义写词”，两种练习分别安排复习间隔。"
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-base font-medium text-slate-200">外语输出</div>
                   <div className="mt-1.5 text-sm leading-5 text-slate-500">
                     {draft.productionEnabled
-                      ? "当前同时安排识别与输出"
-                      : "当前只安排看词想义"}
+                      ? "看词想义 + 看义写词"
+                      : "只做看词想义"}
                   </div>
                 </div>
                 <button
@@ -208,7 +208,7 @@ export function MobileStudySettings() {
 
             <SettingsSection
               title="目标记忆率"
-              description="间隔算法会根据这个目标调整复习频率。目标越高，通常复习越频繁；目标越低，间隔会更宽松。"
+              description="目标越高，复习通常越频繁；目标越低，间隔会更宽松。"
             >
               <div className="flex items-end justify-between gap-4">
                 <span className="text-base text-slate-200">当前目标</span>
@@ -253,7 +253,7 @@ export function MobileStudySettings() {
                 <div>
                   <div className="text-base font-medium text-slate-200">设备与离线诊断</div>
                   <div className="mt-1 text-xs text-slate-500">
-                    检查离线缓存、持久存储和本地数据
+                    检查离线缓存、存储状态和学习数据
                   </div>
                 </div>
               </div>
@@ -294,7 +294,7 @@ export function MobileStudySettings() {
             )}
           </button>
           <p className="mt-3 text-center text-xs leading-5 text-slate-600">
-            设置只保存在本机；下一次生成复习队列时生效。
+            保存后从下一轮复习起生效。
           </p>
         </div>
       </div>

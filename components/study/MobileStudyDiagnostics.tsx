@@ -140,9 +140,9 @@ export function MobileStudyDiagnostics() {
       const granted = await requestPersistentStorage();
       await load();
       if (granted === null) {
-        setError("当前浏览器不支持请求持久存储，或请求失败。可继续使用，但需要依赖备份防止系统清理数据。");
+        setError("当前浏览器无法请求持久存储。");
       } else if (!granted) {
-        setError("浏览器这次没有授予持久存储。若使用 iPhone，请从主屏幕安装后的应用中重新打开再试。");
+        setError("未授予持久存储。可从主屏幕打开后重试。");
       }
     } finally {
       setRequesting(false);
@@ -196,7 +196,7 @@ export function MobileStudyDiagnostics() {
         </header>
 
         <p className="mt-4 text-sm leading-6 text-slate-500">
-          用于 iPhone 实机检查。这里不会上传学习数据，只读取当前设备的离线能力、缓存和本地数据库计数。
+          查看当前设备的离线、存储和学习数据状态。
         </p>
 
         {error && (
@@ -207,11 +207,11 @@ export function MobileStudyDiagnostics() {
 
         {loading && !snapshot ? (
           <div className="flex flex-1 items-center justify-center py-20 text-sm text-slate-500">
-            正在检查本机状态…
+            正在检查设备状态…
           </div>
         ) : snapshot ? (
           <div className="mt-6 space-y-4">
-            <Panel icon={<FiShield aria-hidden="true" size={17} />} title="存储生存状态">
+            <Panel icon={<FiShield aria-hidden="true" size={17} />} title="存储状态">
               <DiagnosticRow
                 label="安全连接"
                 value={snapshot.storage.secureContext ? "是" : "否"}
@@ -305,7 +305,7 @@ export function MobileStudyDiagnostics() {
               </div>
             </Panel>
 
-            <Panel icon={<FiDatabase aria-hidden="true" size={17} />} title="本地学习数据库">
+            <Panel icon={<FiDatabase aria-hidden="true" size={17} />} title="学习数据">
               <DiagnosticRow label="复习项目" value={snapshot.database.reviewItems} />
               <DiagnosticRow label="间隔状态" value={snapshot.database.reviewStates} />
               <DiagnosticRow label="复习记录" value={snapshot.database.reviewEvents} />
@@ -314,13 +314,11 @@ export function MobileStudyDiagnostics() {
             </Panel>
 
             <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5">
-              <div className="text-base font-medium text-white">iPhone 实机检查顺序</div>
+              <div className="text-base font-medium text-white">离线检查</div>
               <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-500">
-                <li>1. Safari 中添加到主屏幕，再从主屏幕打开。</li>
-                <li>2. 确认“主屏幕独立模式”为正常，并请求持久存储。</li>
-                <li>3. 完成几张复习，刷新这里确认复习记录与间隔状态增加。</li>
-                <li>4. 开飞行模式，彻底关闭应用后重新打开，检查首页、复习页和设置页。</li>
-                <li>5. 恢复网络后再次打开，确认原学习状态仍在。</li>
+                <li>1. 从主屏幕打开应用。</li>
+                <li>2. 确认持久化模式与核心离线页面状态正常。</li>
+                <li>3. 开启飞行模式后重新打开应用。</li>
               </ol>
             </section>
 
@@ -343,10 +341,6 @@ export function MobileStudyDiagnostics() {
             </button>
           </div>
         ) : null}
-
-        <footer className="mt-8 text-center text-xs tracking-[0.12em] text-slate-700">
-          仅本机 · 不上传
-        </footer>
       </div>
     </main>
   );

@@ -287,7 +287,7 @@ export function MobileStudyHome() {
 
         {loading && !snapshot ? (
           <div className="flex flex-1 items-center justify-center py-16 text-sm text-slate-500">
-            正在读取本地学习数据…
+            正在读取学习数据…
           </div>
         ) : snapshot?.progress ? (
           <>
@@ -379,17 +379,12 @@ export function MobileStudyHome() {
               )}
 
               {practiceHref && (
-                <>
-                  <Link
-                    href={practiceHref}
-                    className="block w-full rounded-[22px] border border-white/12 bg-white/[0.055] px-5 py-3.5 text-center text-base font-semibold text-slate-200 transition duration-150 active:scale-[0.97] active:bg-white/[0.1]"
-                  >
-                    自由复习
-                  </Link>
-                  <p className="text-center text-xs leading-5 text-slate-600">
-                    只复习已经学过的词，不改变正式复习间隔
-                  </p>
-                </>
+                <Link
+                  href={practiceHref}
+                  className="block w-full rounded-[22px] border border-white/12 bg-white/[0.055] px-5 py-3.5 text-center text-base font-semibold text-slate-200 transition duration-150 active:scale-[0.97] active:bg-white/[0.1]"
+                >
+                  自由复习
+                </Link>
               )}
             </div>
           </>
@@ -397,12 +392,12 @@ export function MobileStudyHome() {
           <section className="mt-5 rounded-[28px] border border-white/10 bg-white/[0.045] p-5">
             <div className="text-lg font-medium text-white">设置学习进度</div>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              这个词库还没有本地学习位置。首页不会猜测你的课次，也不会把个人进度写死在代码里。
+              选择当前学习位置后即可开始复习。
             </p>
             {snapshot.latestRegisteredLesson ? (
               <>
                 <div className="mt-5 rounded-2xl bg-black/20 px-4 py-3 text-sm text-slate-300">
-                  当前已录入到：第 {snapshot.book} 册 · Unité {snapshot.latestRegisteredLesson.unit} · Leçon {snapshot.latestRegisteredLesson.lesson}
+                  当前内容：第 {snapshot.book} 册 · Unité {snapshot.latestRegisteredLesson.unit} · Leçon {snapshot.latestRegisteredLesson.lesson}
                 </div>
                 <button
                   type="button"
@@ -410,12 +405,12 @@ export function MobileStudyHome() {
                   disabled={initializing}
                   className="mt-4 w-full rounded-[20px] bg-white px-4 py-3.5 text-sm font-semibold text-slate-950 transition duration-150 active:scale-[0.97] disabled:opacity-50"
                 >
-                  {initializing ? "正在保存…" : "以当前已录入内容初始化"}
+                  {initializing ? "正在保存…" : "使用当前内容开始"}
                 </button>
               </>
             ) : (
               <div className="mt-4 text-sm text-slate-500">
-                当前词库还没有可初始化的课次数据。
+                当前词库还没有可学习的内容。
               </div>
             )}
           </section>
