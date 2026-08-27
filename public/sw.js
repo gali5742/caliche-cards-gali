@@ -1,5 +1,5 @@
 // Bump this when changing caching behavior to ensure old caches are dropped.
-const CACHE_NAME = "language-study-v4";
+const CACHE_NAME = "language-study-v5";
 
 const PRECACHE_URLS = [
   "/",
@@ -25,15 +25,28 @@ function shellFallbackPath(pathname) {
   return pathname.startsWith("/study") ? "/study" : "/";
 }
 
+async function precacheIndividually(cache) {
+  await Promise.allSettled(
+    PRECACHE_URLS.map(async (url) => {
+      const request = new Request(url, { cache: "reload" });
+      const response = await fetch(request);
+
+      // Do not pin auth/login redirects (or other redirected responses) under
+      // an offline shell key. A failure for one URL must not block the rest.
+      if (!response.ok || response.redirected) {
+        throw new Error(`Unable to precache ${url}`);
+      }
+
+      await cache.put(request, response);
+    })
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
-      try {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.addAll(PRECACHE_URLS);
-      } catch {
-        // If precache fails (redirects, transient network), still install.
-      }
+      const cache = await caches.open(CACHE_NAME);
+      await precacheIndividually(cache);
       await self.skipWaiting();
     })()
   );
