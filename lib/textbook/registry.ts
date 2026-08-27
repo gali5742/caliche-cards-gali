@@ -19,13 +19,35 @@ const COLLECTIONS: ContentCollection[] = [
   },
 ];
 
-const LESSONS: TextbookLessonData[] = [
+function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
+  const lessonKeys = new Set<string>();
+  const vocabularyIds = new Set<string>();
+
+  for (const lesson of lessons) {
+    const lessonKey = `${lesson.languageId}:${lesson.collectionId}:b${lesson.book}:u${lesson.unit}:l${lesson.lesson}`;
+    if (lessonKeys.has(lessonKey)) {
+      throw new Error(`duplicate registered lesson: ${lessonKey}`);
+    }
+    lessonKeys.add(lessonKey);
+
+    for (const entry of lesson.entries) {
+      if (vocabularyIds.has(entry.id)) {
+        throw new Error(`duplicate registered vocabulary id: ${entry.id}`);
+      }
+      vocabularyIds.add(entry.id);
+    }
+  }
+
+  return lessons;
+}
+
+const LESSONS: TextbookLessonData[] = validateRegistry([
   validateLessonData(lessonB1U1L1),
   validateLessonData(lessonB1U1L2),
   validateLessonData(lessonB1U1L3),
   validateLessonData(lessonB1U1L4),
   validateLessonData(lessonB1U2L5),
-];
+]);
 
 function matchesCollection(
   lesson: TextbookLessonData,
