@@ -1,4 +1,8 @@
+import lessonB1U1L1 from "../../data/textbooks/bonjour-francais/book-01/unit-01/lesson-01.json";
+import lessonB1U1L2 from "../../data/textbooks/bonjour-francais/book-01/unit-01/lesson-02.json";
+import lessonB1U1L3 from "../../data/textbooks/bonjour-francais/book-01/unit-01/lesson-03.json";
 import lessonB1U1L4 from "../../data/textbooks/bonjour-francais/book-01/unit-01/lesson-04.json";
+import lessonB1U2L5 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-05.json";
 import type {
   ContentCollection,
   ContentCollectionRef,
@@ -15,7 +19,13 @@ const COLLECTIONS: ContentCollection[] = [
   },
 ];
 
-const LESSONS: TextbookLessonData[] = [validateLessonData(lessonB1U1L4)];
+const LESSONS: TextbookLessonData[] = [
+  validateLessonData(lessonB1U1L1),
+  validateLessonData(lessonB1U1L2),
+  validateLessonData(lessonB1U1L3),
+  validateLessonData(lessonB1U1L4),
+  validateLessonData(lessonB1U2L5),
+];
 
 function matchesCollection(
   lesson: TextbookLessonData,
