@@ -2,18 +2,18 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Caliche Cards",
-    short_name: "Caliche Cards",
+    name: "Language Study",
+    short_name: "Study",
     description:
-      "Offline-first flashcards for importing Anki decks (.apkg) and studying with simple Fail/Pass reviews.",
-    id: "/",
-    start_url: "/",
+      "Local-first language vocabulary study with FSRS scheduling and offline review.",
+    id: "/study",
+    start_url: "/study",
     scope: "/",
-    lang: "en",
+    lang: "zh-CN",
     display: "standalone",
     display_override: ["standalone", "fullscreen"],
-    background_color: "#0a0a0a",
-    theme_color: "#0a0a0a",
+    background_color: "#07111d",
+    theme_color: "#07111d",
     categories: ["education", "productivity"],
     icons: [
       {
