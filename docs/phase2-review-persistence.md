@@ -4,16 +4,24 @@ This phase persists the new textbook review runtime without modifying Caliche's 
 
 ## Database
 
-A separate Dexie database is used:
+The native textbook runtime uses one separate Dexie database:
 
 - name: `bonjour-francais-review`
-- schema version: `1`
+- current schema version: `3`
 
-Tables:
+Schema history:
+
+- v1: `reviewItems`, `reviewStates`, `reviewEvents`
+- v2: adds `introducedAt` metadata for daily new-vocabulary accounting
+- v3: adds `progress` and `settings`
+
+Current tables:
 
 - `reviewItems`: stable derived review identities and enabled state
 - `reviewStates`: one independent FSRS state per ReviewItem
 - `reviewEvents`: append-only review history
+- `progress`: persisted textbook learning position, keyed by book
+- `settings`: persisted study settings
 
 Textbook vocabulary content is not copied into this database. `VocabularyEntry` remains owned by the native textbook data layer.
 
@@ -47,12 +55,4 @@ Existing progress is therefore preserved when textbook data is reloaded.
 
 ## Deliberate boundaries
 
-This phase does not:
-
-- migrate legacy Caliche `cardStates`
-- connect the mobile UI
-- add cloud synchronization
-- copy textbook content into IndexedDB
-- merge Caliche's existing databases
-
-The next runtime layer can query `listDueStates(now)` to build the mobile "today" review queue.
+The native database remains physically separate from Caliche's legacy IndexedDB databases. This phase does not migrate legacy `cardStates`, merge legacy databases, or add cloud synchronization.

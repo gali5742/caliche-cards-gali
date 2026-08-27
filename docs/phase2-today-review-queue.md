@@ -65,20 +65,16 @@ For new vocabulary, recognition items are grouped before production items. This 
 
 ## IndexedDB schema
 
-`bonjour-francais-review` advances from schema version 1 to version 2.
-
-The only new indexed metadata is optional `introducedAt` on stored ReviewItems. Existing FSRS states and ReviewEvents are not rewritten.
+Schema version 2 introduced optional `introducedAt` metadata on stored ReviewItems. Schema version 3 adds persisted learning progress and study settings without rewriting existing FSRS states or ReviewEvents.
 
 `upsertItems()` preserves introduction metadata, including when a new skill is enabled for vocabulary that was introduced previously.
 
-## Deliberate boundaries
+## Current boundaries
 
-This phase does not yet:
+The queue runtime still does not:
 
 - render the mobile home page
-- persist `LearningProgress`
-- persist user settings such as the daily new limit
-- add cloud sync
 - decide prompt mode (visual/audio/multiple-choice/typing)
+- synchronize to cloud storage
 
-Those remain above the queue runtime.
+LearningProgress and the settings that feed the queue are now persisted above this layer.
