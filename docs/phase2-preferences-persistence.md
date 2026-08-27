@@ -4,13 +4,15 @@ This phase persists the user-facing study configuration needed by the mobile hom
 
 ## Learning progress
 
-`LearningProgress` is stored per book and represents the furthest unlocked textbook position:
+`LearningProgress` is stored per language + collection + book and represents the furthest unlocked textbook position:
 
+- `languageId`
+- `collectionId`
 - book
 - unit
 - lesson
 
-The application does not hardcode a personal current lesson. If no progress has been saved, the runtime returns `null` and the UI must ask the learner to choose or confirm a position.
+The application does not hardcode a personal current lesson. If no progress has been saved for the active collection/book, the runtime returns `null` and the UI must ask the learner to choose or confirm a position.
 
 ## Study settings
 
@@ -36,7 +38,7 @@ Invalid persisted settings are rejected rather than silently coerced.
 
 ## Runtime mapping
 
-`loadStudyRuntimeConfig()` combines persisted progress and settings and exposes:
+`loadStudyRuntimeConfig()` receives a collection-scoped `progressRef` and combines persisted progress and settings into:
 
 - validated `LearningProgress | null`
 - effective `StudySettings`
@@ -49,9 +51,9 @@ The daily new-vocabulary limit feeds `buildTodayReviewQueue()`. The requested re
 
 ## Storage
 
-These values live in the existing native database `bonjour-francais-review`, schema v3:
+These values live in the native `language-study` database:
 
 - `progress`
 - `settings`
 
-No extra preferences database is created. This keeps the new textbook runtime's local state in one database while remaining isolated from Caliche's legacy storage.
+No textbook-specific preferences database is created. This keeps local study state in one application-level database while remaining isolated from Caliche's legacy storage.
