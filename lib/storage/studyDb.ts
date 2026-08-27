@@ -1,11 +1,12 @@
 import Dexie, { type Table } from "dexie";
 import type { ReviewEvent, ReviewItem } from "../../domain/review/types";
 import type { StudySettings } from "../../domain/settings/types";
+import type { DailyStudyPlan } from "../../domain/study/dailyStudy";
 import type { LearningProgress } from "../../domain/textbook/types";
 import type { StoredReviewState } from "../repositories/reviewRepository";
 
 export const STUDY_DB_NAME = "language-study";
-export const STUDY_DB_VERSION = 1;
+export const STUDY_DB_VERSION = 2;
 
 export type StoredReviewItem = ReviewItem & {
   updatedAt: number;
@@ -31,22 +32,32 @@ export type StoredStudySettings = {
   updatedAt: number;
 };
 
+export type StoredDailyStudyPlan = DailyStudyPlan & {
+  id: string;
+  updatedAt: number;
+};
+
 export class LanguageStudyDb extends Dexie {
   reviewItems!: Table<StoredReviewItem, string>;
   reviewStates!: Table<StoredReviewStateRow, string>;
   reviewEvents!: Table<StoredReviewEvent, string>;
   progress!: Table<StoredLearningProgress, string>;
   settings!: Table<StoredStudySettings, string>;
+  dailyStudyPlans!: Table<StoredDailyStudyPlan, string>;
 
   constructor() {
     super(STUDY_DB_NAME);
 
-    this.version(STUDY_DB_VERSION).stores({
+    this.version(1).stores({
       reviewItems: "id, vocabularyId, skill, enabled, introducedAt",
       reviewStates: "reviewItemId, due",
       reviewEvents: "id, reviewItemId, reviewedAt, [reviewItemId+reviewedAt]",
       progress: "id, [languageId+collectionId+book]",
       settings: "id",
+    });
+
+    this.version(STUDY_DB_VERSION).stores({
+      dailyStudyPlans: "id, [languageId+collectionId+book+localDate]",
     });
   }
 }
