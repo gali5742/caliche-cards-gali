@@ -1,11 +1,13 @@
 import type { ContentCollection, ContentCollectionRef } from "../../domain/content/types";
 import type { LearningProgress } from "../../domain/textbook/types";
+import type { DailyStudyRepository } from "../repositories/dailyStudyRepository";
 import type { ProgressRepository } from "../repositories/progressRepository";
 import type { ReviewRepository } from "../repositories/reviewRepository";
 import type { SettingsRepository } from "../repositories/settingsRepository";
 import type { VocabularyRepository } from "../repositories/vocabularyRepository";
 import { buildTodayReviewQueue, type TodayReviewQueueSummary } from "../review/todayReviewQueue";
 import { FsrsScheduler } from "../srs/fsrsAdapter";
+import { getDailyExtraNewVocabulary } from "../study/dailyNewVocabularyPlan";
 import { saveLearningProgress } from "../textbook/progressService";
 import { listRegisteredLessons } from "../textbook/registry";
 import { loadStudyRuntimeConfig } from "./studyRuntimeConfig";
@@ -25,6 +27,8 @@ export type StudyHomeSnapshot = {
     productionEnabled: boolean;
     fsrsRequestRetention: number;
   };
+  dailyExtraNewVocabulary: number;
+  effectiveDailyNewVocabularyLimit: number;
   queue: TodayReviewQueueSummary | null;
 };
 
@@ -83,6 +87,7 @@ export async function loadStudyHomeSnapshot(input: {
   settingsRepository: SettingsRepository;
   vocabularyRepository: VocabularyRepository;
   reviewRepository: ReviewRepository;
+  dailyStudyRepository?: DailyStudyRepository;
 }): Promise<StudyHomeSnapshot> {
   const progressRef = {
     languageId: input.collection.languageId,
@@ -99,6 +104,16 @@ export async function loadStudyHomeSnapshot(input: {
     input.collection,
     input.book
   );
+  const dailyExtraNewVocabulary = input.dailyStudyRepository
+    ? await getDailyExtraNewVocabulary({
+        collection: input.collection,
+        book: input.book,
+        now: input.now,
+        repository: input.dailyStudyRepository,
+      })
+    : 0;
+  const effectiveDailyNewVocabularyLimit =
+    runtime.settings.dailyNewVocabularyLimit + dailyExtraNewVocabulary;
 
   if (!runtime.progress) {
     return {
@@ -107,6 +122,8 @@ export async function loadStudyHomeSnapshot(input: {
       progress: null,
       latestRegisteredLesson,
       settings: runtime.settings,
+      dailyExtraNewVocabulary,
+      effectiveDailyNewVocabularyLimit,
       queue: null,
     };
   }
@@ -118,7 +135,7 @@ export async function loadStudyHomeSnapshot(input: {
     reviewRepository: input.reviewRepository,
     scheduler,
     now: input.now,
-    dailyNewVocabularyLimit: runtime.settings.dailyNewVocabularyLimit,
+    dailyNewVocabularyLimit: effectiveDailyNewVocabularyLimit,
     skills: runtime.reviewSkills,
   });
 
@@ -128,6 +145,8 @@ export async function loadStudyHomeSnapshot(input: {
     progress: runtime.progress,
     latestRegisteredLesson,
     settings: runtime.settings,
+    dailyExtraNewVocabulary,
+    effectiveDailyNewVocabularyLimit,
     queue: queue.summary,
   };
 }
