@@ -3,6 +3,7 @@ import type { LearningProgress } from "../../domain/textbook/types";
 import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import type { ReviewRepository } from "../repositories/reviewRepository";
 import type { VocabularyRepository } from "../repositories/vocabularyRepository";
+import { isNewFsrsSchedulerState } from "../srs/fsrsState";
 import type {
   TodayReviewQueue,
   TodayReviewQueueEntry,
@@ -25,34 +26,70 @@ export async function buildPracticeReviewQueue(input: {
 
   const vocabulary = await input.vocabularyRepository.listUnlocked(lessonRef);
   const activeVocabularyIds = new Set(vocabulary.map((entry) => entry.id));
-  const introducedVocabularyIds = new Set(
-    (await input.reviewRepository.listIntroducedVocabularyIds()).filter((id) =>
-      activeVocabularyIds.has(id)
-    )
-  );
-  const learnedVocabulary = vocabulary.filter((entry) =>
-    introducedVocabularyIds.has(entry.id)
-  );
 
-  const generatedItems = generateReviewItems(learnedVocabulary, {
+  const generatedItems = generateReviewItems(vocabulary, {
     skills: input.skills,
   });
   const storedItems = await input.reviewRepository.getItems(
     generatedItems.map((item) => item.id)
   );
   const storedItemById = new Map(storedItems.map((item) => [item.id, item]));
+
+  const states = await Promise.all(
+    storedItems.map(async (item) => ({
+      item,
+      state: await input.reviewRepository.getState(item.id),
+    }))
+  );
+  const stateByItemId = new Map(
+    states
+      .filter(
+        (entry): entry is {
+          item: (typeof storedItems)[number];
+          state: NonNullable<(typeof entry)["state"]>;
+        } => entry.state !== null
+      )
+      .map((entry) => [entry.item.id, entry.state])
+  );
+
+  // Prefer the explicit introduction marker, but also infer learned vocabulary
+  // from persisted FSRS state. This keeps practice mode compatible with local
+  // review histories that predate or are missing the introducedAt metadata.
+  const learnedVocabularyIds = new Set(
+    (await input.reviewRepository.listIntroducedVocabularyIds()).filter((id) =>
+      activeVocabularyIds.has(id)
+    )
+  );
+
+  for (const { item, state } of states) {
+    if (!state || !activeVocabularyIds.has(item.vocabularyId)) continue;
+    if (
+      !isNewFsrsSchedulerState({
+        due: state.due,
+        raw: state.state,
+      })
+    ) {
+      learnedVocabularyIds.add(item.vocabularyId);
+    }
+  }
+
+  const learnedVocabulary = vocabulary.filter((entry) =>
+    learnedVocabularyIds.has(entry.id)
+  );
   const vocabularyById = new Map<string, VocabularyEntry>(
     learnedVocabulary.map((entry) => [entry.id, entry])
   );
 
+  const practiceItems = generateReviewItems(learnedVocabulary, {
+    skills: input.skills,
+  });
   const entries: TodayReviewQueueEntry[] = [];
-  for (const generatedItem of generatedItems) {
+
+  for (const generatedItem of practiceItems) {
     const item = storedItemById.get(generatedItem.id);
     const entry = vocabularyById.get(generatedItem.vocabularyId);
-    if (!item?.enabled || !entry) continue;
-
-    const state = await input.reviewRepository.getState(item.id);
-    if (!state) continue;
+    const state = item ? stateByItemId.get(item.id) : undefined;
+    if (!item?.enabled || !entry || !state) continue;
 
     entries.push({
       item,
