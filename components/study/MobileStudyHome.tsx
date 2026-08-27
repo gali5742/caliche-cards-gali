@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiBookOpen, FiRefreshCw, FiSettings } from "react-icons/fi";
+import { FiBookOpen, FiPlus, FiRefreshCw, FiSettings } from "react-icons/fi";
 
 import type { ContentCollection } from "../../domain/content/types";
+import { IndexedDbDailyStudyRepository } from "../../lib/repositories/indexedDbDailyStudyRepository";
 import { IndexedDbProgressRepository } from "../../lib/repositories/indexedDbProgressRepository";
 import { IndexedDbReviewRepository } from "../../lib/repositories/indexedDbReviewRepository";
 import { IndexedDbSettingsRepository } from "../../lib/repositories/indexedDbSettingsRepository";
@@ -15,6 +17,7 @@ import {
   loadStudyHomeSnapshot,
   type StudyHomeSnapshot,
 } from "../../lib/runtime/studyHome";
+import { addDailyNewVocabularyBatch } from "../../lib/study/dailyNewVocabularyPlan";
 import { listRegisteredCollections } from "../../lib/textbook/registry";
 
 function collectionKey(collection: ContentCollection): string {
@@ -50,7 +53,12 @@ function MetricCard({
 }
 
 export function MobileStudyHome() {
+  const router = useRouter();
   const collections = useMemo(() => listRegisteredCollections(), []);
+  const dailyStudyRepository = useMemo(
+    () => new IndexedDbDailyStudyRepository(),
+    []
+  );
   const [selectedCollectionKey, setSelectedCollectionKey] = useState(() =>
     collections.length === 1 ? collectionKey(collections[0]) : ""
   );
@@ -69,6 +77,7 @@ export function MobileStudyHome() {
   const [snapshot, setSnapshot] = useState<StudyHomeSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(false);
+  const [addingBatch, setAddingBatch] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
 
@@ -106,6 +115,7 @@ export function MobileStudyHome() {
         settingsRepository: new IndexedDbSettingsRepository(),
         vocabularyRepository: new StaticVocabularyRepository(),
         reviewRepository: new IndexedDbReviewRepository(),
+        dailyStudyRepository,
       });
       setSnapshot(next);
     } catch (cause) {
@@ -113,7 +123,7 @@ export function MobileStudyHome() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBook, selectedCollection]);
+  }, [dailyStudyRepository, selectedBook, selectedCollection]);
 
   useEffect(() => {
     void reload();
@@ -149,6 +159,42 @@ export function MobileStudyHome() {
         )}&book=${selectedBook}`
       : null;
   const practiceHref = reviewHref ? `${reviewHref}&mode=practice` : null;
+  const batchSize = snapshot?.settings.dailyNewVocabularyLimit ?? 0;
+  const remainingNewVocabulary = queue?.availableNewVocabulary ?? 0;
+  const canAddBatch =
+    total === 0 &&
+    Boolean(reviewHref) &&
+    batchSize > 0 &&
+    remainingNewVocabulary > 0;
+  const nextBatchCount = Math.min(batchSize, remainingNewVocabulary);
+
+  const addAnotherBatch = useCallback(async () => {
+    if (
+      !selectedCollection ||
+      selectedBook === null ||
+      !snapshot ||
+      !reviewHref ||
+      snapshot.settings.dailyNewVocabularyLimit <= 0
+    ) {
+      return;
+    }
+
+    setAddingBatch(true);
+    setError(null);
+    try {
+      await addDailyNewVocabularyBatch({
+        collection: selectedCollection,
+        book: selectedBook,
+        now: Date.now(),
+        amount: snapshot.settings.dailyNewVocabularyLimit,
+        repository: dailyStudyRepository,
+      });
+      router.push(reviewHref);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "无法追加新词");
+      setAddingBatch(false);
+    }
+  }, [dailyStudyRepository, reviewHref, router, selectedBook, selectedCollection, snapshot]);
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
@@ -259,7 +305,11 @@ export function MobileStudyHome() {
               <MetricCard
                 label="新词"
                 value={queue?.newVocabulary ?? 0}
-                hint={`默认 ${snapshot.settings.dailyNewVocabularyLimit}`}
+                hint={
+                  snapshot.dailyExtraNewVocabulary > 0
+                    ? `今日已扩至 ${snapshot.effectiveDailyNewVocabularyLimit}`
+                    : `默认 ${snapshot.settings.dailyNewVocabularyLimit}`
+                }
               />
             </section>
 
@@ -312,6 +362,20 @@ export function MobileStudyHome() {
                 <div className="w-full rounded-[22px] border border-emerald-400/15 bg-emerald-400/8 px-5 py-4 text-center text-base font-semibold text-emerald-200">
                   今日已完成
                 </div>
+              )}
+
+              {canAddBatch && (
+                <button
+                  type="button"
+                  onClick={() => void addAnotherBatch()}
+                  disabled={addingBatch}
+                  className="flex w-full items-center justify-center gap-2 rounded-[22px] bg-sky-400 px-5 py-4 text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90 disabled:opacity-50"
+                >
+                  <FiPlus aria-hidden="true" size={18} />
+                  {addingBatch
+                    ? "正在加入…"
+                    : `再学一组 · ${nextBatchCount} 个新词`}
+                </button>
               )}
 
               {practiceHref && (
