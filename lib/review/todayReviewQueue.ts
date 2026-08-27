@@ -1,7 +1,10 @@
 import type { ReviewItem, ReviewSkill } from "../../domain/review/types";
 import type { LearningProgress } from "../../domain/textbook/types";
 import type { VocabularyEntry } from "../../domain/vocabulary/types";
-import type { ReviewRepository, StoredReviewState } from "../repositories/reviewRepository";
+import type {
+  ReviewRepository,
+  StoredReviewState,
+} from "../repositories/reviewRepository";
 import type { VocabularyRepository } from "../repositories/vocabularyRepository";
 import { isNewFsrsSchedulerState } from "../srs/fsrsState";
 import type { InitializableReviewScheduler } from "../srs/scheduler";
@@ -105,6 +108,8 @@ export async function buildTodayReviewQueue(
     input.dailyNewVocabularyLimit
   );
   const lessonRef = {
+    languageId: input.progress.languageId,
+    collectionId: input.progress.collectionId,
     book: input.progress.book,
     unit: input.progress.unlockedThrough.unit,
     lesson: input.progress.unlockedThrough.lesson,
@@ -136,14 +141,19 @@ export async function buildTodayReviewQueue(
   const vocabularyOrder = new Map(
     vocabulary.map((entry, index) => [entry.id, index])
   );
+  const activeVocabularyIds = new Set(vocabulary.map((entry) => entry.id));
 
   const { start: dayStart, end: dayEnd } = getLocalDayBounds(input.now);
   const [introducedVocabulary, introducedVocabularyToday] = await Promise.all([
     input.reviewRepository.listIntroducedVocabularyIds(),
     input.reviewRepository.listIntroducedVocabularyIds(dayStart, dayEnd),
   ]);
-  const introduced = new Set(introducedVocabulary);
-  const introducedToday = new Set(introducedVocabularyToday);
+  const introduced = new Set(
+    introducedVocabulary.filter((id) => activeVocabularyIds.has(id))
+  );
+  const introducedToday = new Set(
+    introducedVocabularyToday.filter((id) => activeVocabularyIds.has(id))
+  );
 
   const dueEntries: TodayReviewQueueEntry[] = [];
   const continuationEntries: TodayReviewQueueEntry[] = [];

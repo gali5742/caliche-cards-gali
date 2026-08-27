@@ -4,8 +4,8 @@ import type { StudySettings } from "../../domain/settings/types";
 import type { LearningProgress } from "../../domain/textbook/types";
 import type { StoredReviewState } from "../repositories/reviewRepository";
 
-export const REVIEW_DB_NAME = "bonjour-francais-review";
-export const REVIEW_DB_VERSION = 3;
+export const STUDY_DB_NAME = "language-study";
+export const STUDY_DB_VERSION = 1;
 
 export type StoredReviewItem = ReviewItem & {
   updatedAt: number;
@@ -21,6 +21,7 @@ export type StoredReviewEvent = ReviewEvent & {
 };
 
 export type StoredLearningProgress = LearningProgress & {
+  id: string;
   updatedAt: number;
 };
 
@@ -30,51 +31,39 @@ export type StoredStudySettings = {
   updatedAt: number;
 };
 
-export class ReviewDb extends Dexie {
+export class LanguageStudyDb extends Dexie {
   reviewItems!: Table<StoredReviewItem, string>;
   reviewStates!: Table<StoredReviewStateRow, string>;
   reviewEvents!: Table<StoredReviewEvent, string>;
-  progress!: Table<StoredLearningProgress, number>;
+  progress!: Table<StoredLearningProgress, string>;
   settings!: Table<StoredStudySettings, string>;
 
   constructor() {
-    super(REVIEW_DB_NAME);
+    super(STUDY_DB_NAME);
 
-    this.version(1).stores({
-      reviewItems: "id, vocabularyId, skill, enabled",
-      reviewStates: "reviewItemId, due",
-      reviewEvents: "id, reviewItemId, reviewedAt, [reviewItemId+reviewedAt]",
-    });
-
-    this.version(2).stores({
+    this.version(STUDY_DB_VERSION).stores({
       reviewItems: "id, vocabularyId, skill, enabled, introducedAt",
       reviewStates: "reviewItemId, due",
       reviewEvents: "id, reviewItemId, reviewedAt, [reviewItemId+reviewedAt]",
-    });
-
-    this.version(REVIEW_DB_VERSION).stores({
-      reviewItems: "id, vocabularyId, skill, enabled, introducedAt",
-      reviewStates: "reviewItemId, due",
-      reviewEvents: "id, reviewItemId, reviewedAt, [reviewItemId+reviewedAt]",
-      progress: "book",
+      progress: "id, [languageId+collectionId+book]",
       settings: "id",
     });
   }
 }
 
-let db: ReviewDb | null = null;
+let db: LanguageStudyDb | null = null;
 
-export function getReviewDb(): ReviewDb {
-  if (!db) db = new ReviewDb();
+export function getLanguageStudyDb(): LanguageStudyDb {
+  if (!db) db = new LanguageStudyDb();
   return db;
 }
 
-export function closeReviewDb(): void {
+export function closeLanguageStudyDb(): void {
   db?.close();
   db = null;
 }
 
-export async function deleteReviewDb(): Promise<void> {
-  closeReviewDb();
-  await Dexie.delete(REVIEW_DB_NAME);
+export async function deleteLanguageStudyDb(): Promise<void> {
+  closeLanguageStudyDb();
+  await Dexie.delete(STUDY_DB_NAME);
 }

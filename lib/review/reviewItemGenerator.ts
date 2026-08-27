@@ -38,6 +38,8 @@ export async function generateUnlockedReviewItems(
   options: ReviewItemGenerationOptions = {}
 ): Promise<ReviewItem[]> {
   const entries = await repository.listUnlocked({
+    languageId: progress.languageId,
+    collectionId: progress.collectionId,
     book: progress.book,
     unit: progress.unlockedThrough.unit,
     lesson: progress.unlockedThrough.lesson,

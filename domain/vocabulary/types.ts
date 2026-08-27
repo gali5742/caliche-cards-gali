@@ -1,31 +1,30 @@
-export type VocabularyGender = "masculine" | "feminine";
+import type { ContentCollectionRef } from "../content/types";
 
-export type VocabularyForms = {
-  feminine?: string;
-  plural?: string;
-  femininePlural?: string;
+export type VocabularyGrammar = {
+  gender?: string;
+  forms?: Record<string, string>;
 };
 
-export type TextbookSourceRef = {
-  book: number;
-  unit: number;
-  lesson: number;
+export type VocabularySourceRef = ContentCollectionRef & {
+  kind: "textbook" | "collection";
+  book?: number;
+  unit?: number;
+  lesson?: number;
   section?: string;
 };
 
 export type VocabularyEntry = {
   id: string;
   lemma: string;
-  ipa: string;
+  ipa?: string;
   meaningsZh: string[];
   partOfSpeech: string;
-  gender?: VocabularyGender;
-  forms?: VocabularyForms;
+  grammar?: VocabularyGrammar;
   example?: string;
   exampleIpa?: string;
   exampleZh?: string;
   audioRef?: string;
-  source: TextbookSourceRef;
+  source: VocabularySourceRef;
   tags?: string[];
   notes?: string;
 };

@@ -1,6 +1,6 @@
 # Phase 2 today review queue
 
-This phase composes textbook progress, generated ReviewItems, persisted FSRS state, and the daily new-vocabulary limit into one runtime queue.
+This phase composes collection-scoped textbook progress, generated ReviewItems, persisted FSRS state, and the daily new-vocabulary limit into one runtime queue.
 
 ## Queue inputs
 
@@ -13,6 +13,8 @@ This phase composes textbook progress, generated ReviewItems, persisted FSRS sta
 - current timestamp
 - daily new-vocabulary limit
 - optional enabled skills
+
+`LearningProgress` includes `languageId` and `collectionId`, so the queue is built for one active content collection rather than for the whole application at once.
 
 The UI does not need to understand FSRS internals to build today's work.
 
@@ -32,8 +34,8 @@ The quota counts vocabulary entries, not ReviewItems.
 
 For example, with a daily new-vocabulary limit of 5:
 
-- `gauche:recognition`
-- `gauche:production`
+- `fr:bonjour-francais:...:gauche:recognition`
+- `fr:bonjour-francais:...:gauche:production`
 
 count together as one new vocabulary item.
 
@@ -43,15 +45,17 @@ The first committed review of either skill records `introducedAt` for all Review
 - vocabulary introduced on an earlier day
 - vocabulary never introduced
 
+Daily quota accounting is scoped to vocabulary unlocked in the active collection. Studying a different language or collection on the same day therefore does not consume this collection's new-vocabulary capacity.
+
 The database uses the device's local calendar day when calculating today's introductions.
 
 ## Reopening the app does not reset the quota
 
 Suppose the daily limit is 5 and the user completes two of the five selected new vocabulary entries, then closes and reopens the PWA.
 
-The next queue sees two introductions already recorded today and therefore has three slots left. Because fresh candidates are selected deterministically in textbook order, the remaining three originally selected entries are chosen again rather than exposing three additional vocabulary entries.
+The next queue sees two introductions already recorded today for the active collection and therefore has three slots left. Because fresh candidates are selected deterministically in textbook order, the remaining three originally selected entries are chosen again rather than exposing three additional vocabulary entries.
 
-After five vocabulary entries have been introduced, reopening the app cannot admit a sixth new entry that day.
+After five vocabulary entries have been introduced in that collection, reopening the app cannot admit a sixth new entry there that day.
 
 ## Ordering
 
@@ -61,11 +65,11 @@ The queue order is:
 2. continuation items
 3. newly admitted vocabulary
 
-For new vocabulary, recognition items are grouped before production items. This avoids the easiest form of cue leakage where a French-to-Chinese recognition prompt is immediately followed by Chinese-to-French production for the same word.
+For new vocabulary, recognition items are grouped before production items. This avoids the easiest form of cue leakage where a recognition prompt is immediately followed by production for the same word.
 
-## IndexedDB schema
+## IndexedDB
 
-Schema version 2 introduced optional `introducedAt` metadata on stored ReviewItems. Schema version 3 adds persisted learning progress and study settings without rewriting existing FSRS states or ReviewEvents.
+The current native database is `language-study`. Vocabulary IDs are namespaced by language and collection, so review state from different sources can coexist safely in the same database.
 
 `upsertItems()` preserves introduction metadata, including when a new skill is enabled for vocabulary that was introduced previously.
 
@@ -77,4 +81,4 @@ The queue runtime still does not:
 - decide prompt mode (visual/audio/multiple-choice/typing)
 - synchronize to cloud storage
 
-LearningProgress and the settings that feed the queue are now persisted above this layer.
+LearningProgress and the settings that feed the queue are persisted above this layer.
