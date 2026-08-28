@@ -11,7 +11,7 @@ export function VocabularyConjugationTable({
   if (conjugations.length === 0) return null;
 
   return (
-    <div className={compact ? "mt-4 space-y-3" : "mt-4 space-y-4"}>
+    <div className={`${compact ? "mt-4 space-y-3" : "mt-4 space-y-4"} text-left`}>
       {conjugations.map((conjugation) => (
         <section key={conjugation.id}>
           <div className="text-xs font-medium tracking-[0.06em] text-sky-300/75">
