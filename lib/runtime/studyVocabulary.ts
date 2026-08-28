@@ -3,6 +3,7 @@ import type { LearningProgress, TextbookLessonCoverage } from "../../domain/text
 import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import type { ProgressRepository } from "../repositories/progressRepository";
 import { listRegisteredLessons } from "../textbook/registry";
+import { vocabularyEntrySearchTerms } from "../vocabulary/searchTerms";
 
 export type StudyVocabularyLesson = {
   book: number;
@@ -39,18 +40,10 @@ export function vocabularyEntryMatches(entry: VocabularyEntry, query: string): b
   const normalized = query.trim().toLocaleLowerCase();
   if (!normalized) return true;
 
-  const haystack = [
-    entry.lemma,
-    entry.ipa ?? "",
-    entry.partOfSpeech,
-    ...entry.meaningsZh,
-    ...(entry.tags ?? []),
-    ...Object.values(entry.grammar?.forms ?? {}),
-  ]
+  return vocabularyEntrySearchTerms(entry)
     .join("\n")
-    .toLocaleLowerCase();
-
-  return haystack.includes(normalized);
+    .toLocaleLowerCase()
+    .includes(normalized);
 }
 
 export async function loadStudyVocabularySnapshot(input: {
