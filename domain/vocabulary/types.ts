@@ -1,8 +1,26 @@
 import type { ContentCollectionRef } from "../content/types";
 
+export type VocabularyConjugationForm = {
+  person?: string;
+  form: string;
+  ipa?: string;
+};
+
+export type VocabularyConjugationSet = {
+  id: string;
+  label: string;
+  forms: VocabularyConjugationForm[];
+};
+
+export type VocabularyVerbGrammar = {
+  conjugationClass?: string;
+  conjugations?: VocabularyConjugationSet[];
+};
+
 export type VocabularyGrammar = {
   gender?: string;
   forms?: Record<string, string>;
+  verb?: VocabularyVerbGrammar;
 };
 
 export type VocabularySourceRef = ContentCollectionRef & {
