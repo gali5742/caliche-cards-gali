@@ -26,6 +26,8 @@ The native study app supports:
 - free review of already learned vocabulary without changing scheduled review state
 - textbook-order vocabulary browsing and local search by foreign-language form, Chinese meaning, IPA, part of speech and stored forms
 - learned/all vocabulary scopes with lesson filtering
+- noun gender plus notable stored inflected forms such as irregular or invariant plurals
+- structured verb conjugation metadata, currently showing present indicative forms after answer reveal and in the vocabulary browser
 - iPhone-first settings for group size, production review and requested retention
 - offline PWA shell, IndexedDB persistence and persistent-storage diagnostics
 - versioned local JSON backup and transactional restore
@@ -63,12 +65,18 @@ lemma
 IPA
 Chinese meanings
 part of speech
-grammar metadata (gender / forms)
+grammar metadata
+  gender
+  stored inflected forms
+  verb conjugation class
+  conjugation sets and forms
 examples / notes / audio reference
 source coordinates
 ```
 
-Not every optional field is populated yet.
+Verb conjugation sets are extensible. The current French textbook data stores only `présent de l'indicatif` for verbs already registered in the studied material. Adding later tenses does not require a new review-state schema.
+
+Static grammar metadata remains part of the bundled textbook content. It is not stored in IndexedDB and does not create additional FSRS review items by itself.
 
 ## Vocabulary browser
 
@@ -78,7 +86,9 @@ The default `已学` scope follows saved textbook learning progress, so advancin
 
 The `全部` scope shows all vocabulary currently registered in the selected collection/book. Lessons whose textbook data is only partially entered are marked `当前部分`.
 
-Search is local and works offline. It matches lemma, IPA, part of speech, Chinese meanings, tags and stored grammatical forms. Results keep textbook lesson order and can be narrowed to one lesson.
+Search is local and works offline. It matches lemma, IPA, part of speech, Chinese meanings, tags, stored grammatical forms and verb conjugations. Searching a form such as `suis`, `sommes`, `vais` or `avons` can therefore find its infinitive entry.
+
+Notable noun plurals are stored explicitly when they are not a plain predictable `+s` form or when the written singular/plural is invariant. Regular `+s` plurals are intentionally not duplicated in every entry.
 
 ## Scheduling model
 
@@ -100,6 +110,8 @@ Today's scheduled queue is composed in this order:
 The daily new-word limit counts vocabulary entries rather than individual review items. Fresh recognition items are presented before fresh production items to reduce immediate answer leakage.
 
 Free review is a separate practice mode. It reads learned vocabulary and existing local states, presents recognition before production, and advances with a simple Next action rather than writing synthetic difficulty ratings.
+
+Grammar details and verb conjugations are shown only after a recognition answer is revealed or a production answer is checked, so they do not act as prompt-side answer cues.
 
 ## Local data
 
