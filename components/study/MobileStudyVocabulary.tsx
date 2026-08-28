@@ -3,12 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  FiArrowLeft,
-  FiBookOpen,
-  FiSearch,
-  FiX,
-} from "react-icons/fi";
+import { FiArrowLeft, FiBookOpen, FiSearch, FiX } from "react-icons/fi";
 
 import type { ContentCollection } from "../../domain/content/types";
 import { IndexedDbProgressRepository } from "../../lib/repositories/indexedDbProgressRepository";
@@ -25,6 +20,7 @@ import {
   vocabularyFormDetails,
   vocabularyGrammarHeadline,
 } from "../../lib/vocabulary/presentation";
+import { VocabularyConjugationTable } from "./VocabularyConjugationTable";
 
 type VocabularyScope = "learned" | "all";
 
@@ -119,7 +115,10 @@ export function MobileStudyVocabulary() {
       ) ?? [],
     [snapshot]
   );
-  const scopeLessons = scope === "learned" ? learnedLessons : snapshot?.lessons ?? [];
+  const scopeLessons = useMemo(
+    () => (scope === "learned" ? learnedLessons : snapshot?.lessons ?? []),
+    [learnedLessons, scope, snapshot]
+  );
 
   useEffect(() => {
     if (selectedLessonKey === "all") return;
@@ -202,7 +201,7 @@ export function MobileStudyVocabulary() {
             </label>
           ) : selectedCollection ? (
             <div>
-              <div className="text-sm text-slate-500">当前词库</div>
+              <div className="text-sm text-slate-400">当前词库</div>
               <div className="mt-1 text-xl font-medium text-white">
                 {selectedCollection.title}
               </div>
@@ -275,7 +274,7 @@ export function MobileStudyVocabulary() {
                   autoCorrect="off"
                   autoCapitalize="none"
                   spellCheck={false}
-                  placeholder="搜索法语或中文"
+                  placeholder="搜索法语、中文或变形"
                   className="w-full rounded-[20px] border border-white/10 bg-white/[0.055] py-3.5 pl-11 pr-11 text-base text-white outline-none placeholder:text-slate-600 focus:border-sky-400/50"
                 />
                 {query && (
@@ -329,7 +328,11 @@ export function MobileStudyVocabulary() {
                   <section key={lessonKey(lesson)}>
                     <div className="mb-3 flex items-center justify-between gap-3 px-1">
                       <div className="flex items-center gap-2.5">
-                        <FiBookOpen aria-hidden="true" size={16} className="text-sky-300" />
+                        <FiBookOpen
+                          aria-hidden="true"
+                          size={16}
+                          className="text-sky-300"
+                        />
                         <h2 className="text-base font-medium text-slate-200">
                           {lessonLabel(lesson)}
                         </h2>
@@ -362,7 +365,7 @@ export function MobileStudyVocabulary() {
                                 )}
                               </div>
                               {grammar && (
-                                <div className="max-w-[42%] shrink-0 text-right text-sm leading-5 text-slate-500">
+                                <div className="max-w-[48%] shrink-0 text-right text-sm leading-5 text-slate-500">
                                   {grammar}
                                 </div>
                               )}
@@ -384,6 +387,8 @@ export function MobileStudyVocabulary() {
                                 ))}
                               </div>
                             )}
+
+                            <VocabularyConjugationTable entry={entry} compact />
                           </article>
                         );
                       })}
