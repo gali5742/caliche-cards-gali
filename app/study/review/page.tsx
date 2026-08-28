@@ -1,17 +1,21 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { MobileStudyReview } from "../../../components/study/MobileStudyReview";
 
+function subscribeToLocation() {
+  return () => undefined;
+}
+
 function ReviewRoute() {
   const searchParams = useSearchParams();
-  const [browserSearch, setBrowserSearch] = useState<string | null>(null);
-
-  useEffect(() => {
-    setBrowserSearch(window.location.search);
-  }, []);
+  const browserSearch = useSyncExternalStore(
+    subscribeToLocation,
+    () => window.location.search,
+    () => ""
+  );
 
   const resolvedParams = useMemo(() => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -23,18 +27,8 @@ function ReviewRoute() {
       return nextParams;
     }
 
-    if (browserSearch === null) return null;
-    const browserParams = new URLSearchParams(browserSearch);
-    return browserParams;
+    return new URLSearchParams(browserSearch);
   }, [browserSearch, searchParams]);
-
-  if (resolvedParams === null) {
-    return (
-      <main className="flex min-h-[100dvh] items-center justify-center bg-[#07111d] px-6 text-sm text-slate-500">
-        正在打开复习…
-      </main>
-    );
-  }
 
   const languageId = resolvedParams.get("language") ?? undefined;
   const collectionId = resolvedParams.get("collection") ?? undefined;
