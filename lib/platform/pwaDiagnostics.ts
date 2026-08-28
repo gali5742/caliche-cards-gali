@@ -3,6 +3,7 @@ export const CORE_OFFLINE_ROUTES = [
   "/study/review",
   "/study/progress",
   "/study/settings",
+  "/study/data",
   "/study/diagnostics",
 ] as const;
 
