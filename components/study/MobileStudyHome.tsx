@@ -146,6 +146,14 @@ export function MobileStudyHome() {
           selectedCollection.collectionId
         )}&book=${selectedBook}`
       : "/study/progress";
+  const vocabularyHref =
+    selectedCollection && selectedBook !== null
+      ? `/study/vocabulary?language=${encodeURIComponent(
+          selectedCollection.languageId
+        )}&collection=${encodeURIComponent(
+          selectedCollection.collectionId
+        )}&book=${selectedBook}`
+      : "/study/vocabulary";
   const batchSize = snapshot?.settings.dailyNewVocabularyLimit ?? 0;
   const remainingNewVocabulary = queue?.availableNewVocabulary ?? 0;
   const canAddBatch =
@@ -205,6 +213,13 @@ export function MobileStudyHome() {
             >
               {online ? "在线" : "离线"}
             </div>
+            <Link
+              href={vocabularyHref}
+              aria-label="打开词库"
+              className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition duration-150 active:scale-90 active:bg-white/10"
+            >
+              <FiBookOpen aria-hidden="true" size={17} />
+            </Link>
             <Link
               href="/study/settings"
               aria-label="打开设置"

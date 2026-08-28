@@ -24,6 +24,8 @@ The native study app supports:
 - independent FSRS state for recognition and production
 - four FSRS ratings: Again / Hard / Good / Easy, shown to the learner as 忘了 / 困难 / 记得 / 很熟
 - free review of already learned vocabulary without changing scheduled review state
+- textbook-order vocabulary browsing and local search by foreign-language form, Chinese meaning, IPA, part of speech and stored forms
+- learned/all vocabulary scopes with lesson filtering
 - iPhone-first settings for group size, production review and requested retention
 - offline PWA shell, IndexedDB persistence and persistent-storage diagnostics
 - versioned local JSON backup and transactional restore
@@ -67,6 +69,16 @@ source coordinates
 ```
 
 Not every optional field is populated yet.
+
+## Vocabulary browser
+
+`/study/vocabulary` is the learner-facing cumulative vocabulary list.
+
+The default `已学` scope follows saved textbook learning progress, so advancing the current lesson automatically expands the cumulative list. This scope is based on textbook progress rather than whether an individual vocabulary item has already entered FSRS review.
+
+The `全部` scope shows all vocabulary currently registered in the selected collection/book. Lessons whose textbook data is only partially entered are marked `当前部分`.
+
+Search is local and works offline. It matches lemma, IPA, part of speech, Chinese meanings, tags and stored grammatical forms. Results keep textbook lesson order and can be narrowed to one lesson.
 
 ## Scheduling model
 
@@ -138,6 +150,7 @@ The Service Worker caches route-specific study shells for:
 - `/study`
 - `/study/review`
 - `/study/progress`
+- `/study/vocabulary`
 - `/study/settings`
 - `/study/data`
 - `/study/diagnostics`
@@ -161,6 +174,7 @@ The diagnostics screen checks:
 /study              Today / Home
 /study/review       Scheduled or free review
 /study/progress     Learning progress
+/study/vocabulary   Vocabulary browse and search
 /study/settings     Study settings
 /study/data         Backup and restore
 /study/diagnostics  Device, storage and PWA diagnostics
@@ -181,6 +195,7 @@ domain/
 
 lib/
   textbook/
+  vocabulary/
   repositories/
   review/
   srs/
@@ -237,7 +252,6 @@ The inherited Caliche backend/auth/cloud-sync code still exists for the legacy r
 The native study app does not yet provide:
 
 - audio playback in the native review UI
-- vocabulary browse/search UI
 - cloud synchronization
 - multi-user accounts
 - independent listening or spelling schedules
