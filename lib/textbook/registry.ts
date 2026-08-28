@@ -81,6 +81,17 @@ export function listRegisteredLessons(
             forms: entry.grammar.forms
               ? { ...entry.grammar.forms }
               : undefined,
+            verb: entry.grammar.verb
+              ? {
+                  ...entry.grammar.verb,
+                  conjugations: entry.grammar.verb.conjugations?.map(
+                    (conjugation) => ({
+                      ...conjugation,
+                      forms: conjugation.forms.map((form) => ({ ...form })),
+                    })
+                  ),
+                }
+              : undefined,
           }
         : undefined,
     })),
