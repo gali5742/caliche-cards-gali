@@ -311,6 +311,7 @@ export function MobileStudyDiagnostics() {
               <DiagnosticRow label="复习记录" value={snapshot.database.reviewEvents} />
               <DiagnosticRow label="学习进度" value={snapshot.database.progress} />
               <DiagnosticRow label="设置" value={snapshot.database.settings} />
+              <DiagnosticRow label="今日加组记录" value={snapshot.database.dailyStudyPlans} />
             </Panel>
 
             <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5">
