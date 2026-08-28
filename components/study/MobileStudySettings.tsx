@@ -25,6 +25,15 @@ function sameSettings(a: StudySettings, b: StudySettings): boolean {
   );
 }
 
+function normalizeDailyNewVocabularyLimit(raw: string): number {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return 0;
+
+  const value = Number.parseInt(digits, 10);
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
+}
+
 function SettingsSection({
   title,
   description,
@@ -143,23 +152,21 @@ export function MobileStudySettings() {
                 <div className="flex items-center gap-2">
                   <input
                     id="daily-new-limit"
-                    type="number"
+                    type="text"
                     inputMode="numeric"
-                    min={0}
-                    max={100}
-                    step={1}
+                    pattern="[0-9]*"
+                    maxLength={3}
                     value={draft.dailyNewVocabularyLimit}
                     onChange={(event) => {
-                      const value = Number(event.target.value);
-                      if (!Number.isFinite(value)) return;
+                      const value = normalizeDailyNewVocabularyLimit(
+                        event.target.value
+                      );
+                      event.currentTarget.value = String(value);
                       setDraft((current) =>
                         current
                           ? {
                               ...current,
-                              dailyNewVocabularyLimit: Math.max(
-                                0,
-                                Math.min(100, Math.trunc(value))
-                              ),
+                              dailyNewVocabularyLimit: value,
                             }
                           : current
                       );
