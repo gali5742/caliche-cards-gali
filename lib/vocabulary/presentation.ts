@@ -25,6 +25,12 @@ const FRENCH_FORM_LABELS: Record<string, string> = {
   singular: "单数",
 };
 
+const FRENCH_VERB_CLASS_LABELS: Record<string, string> = {
+  "regular-er": "规则 -er",
+  "first-group-stem-change": "第一组 · 词干变化",
+  irregular: "不规则",
+};
+
 export function vocabularyPartOfSpeechLabel(entry: VocabularyEntry): string {
   if (entry.source.languageId === "fr") {
     return FRENCH_PART_OF_SPEECH[entry.partOfSpeech] ?? entry.partOfSpeech;
@@ -39,8 +45,21 @@ export function vocabularyGenderLabel(entry: VocabularyEntry): string | null {
   return entry.grammar?.gender ?? null;
 }
 
+export function vocabularyVerbClassLabel(entry: VocabularyEntry): string | null {
+  const conjugationClass = entry.grammar?.verb?.conjugationClass;
+  if (!conjugationClass) return null;
+  if (entry.source.languageId === "fr") {
+    return FRENCH_VERB_CLASS_LABELS[conjugationClass] ?? conjugationClass;
+  }
+  return conjugationClass;
+}
+
 export function vocabularyGrammarHeadline(entry: VocabularyEntry): string {
-  return [vocabularyPartOfSpeechLabel(entry), vocabularyGenderLabel(entry)]
+  return [
+    vocabularyPartOfSpeechLabel(entry),
+    vocabularyGenderLabel(entry),
+    vocabularyVerbClassLabel(entry),
+  ]
     .filter(Boolean)
     .join(" · ");
 }
