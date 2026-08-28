@@ -17,16 +17,9 @@ function isPublicPath(pathname: string): boolean {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public assets and Next internals.
   if (
     pathname.startsWith("/_next/") ||
-    // Public/static assets (e.g. PWA icons) should never require auth.
     /\/[^/]+\.[a-z0-9]+$/i.test(pathname) ||
-    pathname === "/logo.ico" ||
-    pathname === "/logo.png" ||
-    pathname === "/logo-192.png" ||
-    pathname === "/logo-512.png" ||
-    pathname === "/logo-180.png" ||
     pathname === "/icon" ||
     pathname === "/apple-icon" ||
     pathname === "/manifest.webmanifest" ||
@@ -58,6 +51,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Exclude large file uploads from middleware to avoid the 10MB middleware body limit.
   matcher: ["/((?!_next/static|_next/image|api/sync/upload).*)"],
 };
