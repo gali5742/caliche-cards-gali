@@ -10,6 +10,10 @@ import type {
 } from "./todayReviewQueue";
 import { generateReviewItems } from "./reviewItemGenerator";
 
+function skillOrder(skill: ReviewSkill): number {
+  return skill === "recognition" ? 0 : 1;
+}
+
 export async function buildPracticeReviewQueue(input: {
   progress: LearningProgress;
   vocabularyRepository: VocabularyRepository;
@@ -52,9 +56,6 @@ export async function buildPracticeReviewQueue(input: {
       .map((entry) => [entry.item.id, entry.state])
   );
 
-  // Prefer the explicit introduction marker, but also infer learned vocabulary
-  // from persisted FSRS state. This keeps practice mode compatible with local
-  // review histories that predate or are missing the introducedAt metadata.
   const learnedVocabularyIds = new Set(
     (await input.reviewRepository.listIntroducedVocabularyIds()).filter((id) =>
       activeVocabularyIds.has(id)
@@ -79,6 +80,9 @@ export async function buildPracticeReviewQueue(input: {
   const vocabularyById = new Map<string, VocabularyEntry>(
     learnedVocabulary.map((entry) => [entry.id, entry])
   );
+  const vocabularyOrder = new Map(
+    learnedVocabulary.map((entry, index) => [entry.id, index])
+  );
 
   const practiceItems = generateReviewItems(learnedVocabulary, {
     skills: input.skills,
@@ -98,6 +102,13 @@ export async function buildPracticeReviewQueue(input: {
       kind: "continuation",
     });
   }
+
+  entries.sort(
+    (a, b) =>
+      skillOrder(a.item.skill) - skillOrder(b.item.skill) ||
+      (vocabularyOrder.get(a.item.vocabularyId) ?? Number.MAX_SAFE_INTEGER) -
+        (vocabularyOrder.get(b.item.vocabularyId) ?? Number.MAX_SAFE_INTEGER)
+  );
 
   return {
     entries,

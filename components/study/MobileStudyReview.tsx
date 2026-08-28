@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 
 import type { ReviewRating } from "../../domain/review/types";
+import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import { IndexedDbDailyStudyRepository } from "../../lib/repositories/indexedDbDailyStudyRepository";
 import { IndexedDbProgressRepository } from "../../lib/repositories/indexedDbProgressRepository";
 import { IndexedDbReviewRepository } from "../../lib/repositories/indexedDbReviewRepository";
@@ -37,10 +38,63 @@ const RATINGS: Array<{
   { rating: "easy", label: "很熟" },
 ];
 
+const FRENCH_PART_OF_SPEECH: Record<string, string> = {
+  nom: "名词",
+  "nom propre": "专有名词",
+  verbe: "动词",
+  "verbe pronominal": "代词式动词",
+  adjectif: "形容词",
+  adverbe: "副词",
+  préposition: "介词",
+  pronom: "代词",
+  article: "冠词",
+  déterminant: "限定词",
+  conjonction: "连词",
+  interjection: "感叹词",
+  "locution adverbiale": "副词短语",
+  "locution prépositive": "介词短语",
+  "locution verbale": "动词短语",
+};
+
+const FRENCH_FORM_LABELS: Record<string, string> = {
+  feminine: "阴性形式",
+  masculine: "阳性形式",
+  plural: "复数",
+  singular: "单数",
+};
+
 function queueKindLabel(kind: "due" | "continuation" | "new"): string {
   if (kind === "due") return "到期复习";
   if (kind === "continuation") return "继续巩固";
   return "新词";
+}
+
+function partOfSpeechLabel(entry: VocabularyEntry): string {
+  if (entry.source.languageId === "fr") {
+    return FRENCH_PART_OF_SPEECH[entry.partOfSpeech] ?? entry.partOfSpeech;
+  }
+  return entry.partOfSpeech;
+}
+
+function genderLabel(entry: VocabularyEntry): string | null {
+  if (entry.source.languageId !== "fr") return entry.grammar?.gender ?? null;
+  if (entry.grammar?.gender === "feminine") return "阴性";
+  if (entry.grammar?.gender === "masculine") return "阳性";
+  return entry.grammar?.gender ?? null;
+}
+
+function grammarHeadline(entry: VocabularyEntry): string {
+  return [partOfSpeechLabel(entry), genderLabel(entry)].filter(Boolean).join(" · ");
+}
+
+function formDetails(entry: VocabularyEntry): string[] {
+  const forms = entry.grammar?.forms;
+  if (!forms) return [];
+  return Object.entries(forms).map(([key, value]) => {
+    const label =
+      entry.source.languageId === "fr" ? FRENCH_FORM_LABELS[key] ?? key : key;
+    return `${label}：${value}`;
+  });
 }
 
 export function MobileStudyReview({
@@ -157,12 +211,7 @@ export function MobileStudyReview({
 
   const submitRating = useCallback(
     async (rating: ReviewRating) => {
-      if (!current || !session || submitting) return;
-
-      if (session.mode === "practice") {
-        setIndex((value) => value + 1);
-        return;
-      }
+      if (!current || !session || submitting || session.mode === "practice") return;
 
       setSubmitting(true);
       setError(null);
@@ -185,6 +234,11 @@ export function MobileStudyReview({
       }
     }, [current, promptStartedAt, repositories.review, session, submitting]
   );
+
+  const advancePractice = useCallback(() => {
+    if (!current || session?.mode !== "practice") return;
+    setIndex((value) => value + 1);
+  }, [current, session]);
 
   const addAnotherBatch = useCallback(async () => {
     if (
@@ -253,7 +307,7 @@ export function MobileStudyReview({
           <div className="mt-8 rounded-[26px] border border-white/10 bg-white/[0.05] p-5">
             <div className="text-lg font-medium text-white">还不能开始复习</div>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              请先在首页设置学习位置。
+              请先在首页设置学习进度。
             </p>
           </div>
         </div>
@@ -318,8 +372,10 @@ export function MobileStudyReview({
   }
 
   const isRecognition = current.item.skill === "recognition";
-  const canRate = isRecognition ? revealed : productionChecked;
+  const canContinue = isRecognition ? revealed : productionChecked;
   const progressPercent = total > 0 ? ((index + 1) / total) * 100 : 0;
+  const grammar = grammarHeadline(current.vocabulary);
+  const forms = formDetails(current.vocabulary);
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
@@ -391,23 +447,30 @@ export function MobileStudyReview({
                   <div className="mt-2 text-2xl font-medium leading-9 text-white">
                     {current.vocabulary.meaningsZh.join("；")}
                   </div>
-                  <div className="mt-4 text-base text-slate-400">
-                    词性 · {current.vocabulary.partOfSpeech}
+                  <div className="mt-4 text-base font-medium text-slate-300">
+                    {grammar}
                   </div>
+                  {forms.length > 0 && (
+                    <div className="mt-4 border-t border-white/8 pt-4 text-sm leading-6 text-slate-400">
+                      {forms.map((form) => (
+                        <div key={form}>{form}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </>
           ) : (
             <>
               <div className="text-center">
-                <div className="text-base font-medium text-slate-300">
+                <div className="text-lg font-medium text-slate-200">
                   根据含义写出词条原形
                 </div>
                 <div className="mt-4 text-[30px] font-semibold leading-10 tracking-[-0.03em] text-white">
                   {current.vocabulary.meaningsZh.join("；")}
                 </div>
-                <div className="mt-3 text-base text-slate-400">
-                  词性 · {current.vocabulary.partOfSpeech}
+                <div className="mt-3 text-base font-medium text-slate-300">
+                  {grammar}
                 </div>
               </div>
 
@@ -484,6 +547,13 @@ export function MobileStudyReview({
                       {current.vocabulary.ipa}
                     </div>
                   )}
+                  {forms.length > 0 && (
+                    <div className="mt-4 border-t border-white/8 pt-4 text-sm leading-6 text-slate-400">
+                      {forms.map((form) => (
+                        <div key={form}>{form}</div>
+                      ))}
+                    </div>
+                  )}
                   {!productionCorrect && answer.trim() && (
                     <div className="mt-3 text-sm text-slate-500">
                       你的输入：{answer}
@@ -495,26 +565,38 @@ export function MobileStudyReview({
           )}
         </section>
 
-        {canRate && (
+        {canContinue && (
           <section className="border-t border-white/8 pt-4">
-            <div className="mb-3 text-center text-sm text-slate-500">
-              {isPractice ? "选择体感难度后继续" : "根据实际回忆难度评分"}
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {RATINGS.map((option) => (
-                <button
-                  key={option.rating}
-                  type="button"
-                  onClick={() => void submitRating(option.rating)}
-                  disabled={submitting}
-                  className="min-h-16 rounded-[18px] border border-white/10 bg-white/[0.055] px-1 py-3 text-center transition duration-150 active:scale-[0.94] active:bg-white/[0.12] disabled:opacity-40"
-                >
-                  <div className="text-base font-medium text-slate-200">
-                    {option.label}
-                  </div>
-                </button>
-              ))}
-            </div>
+            {isPractice ? (
+              <button
+                type="button"
+                onClick={advancePractice}
+                className="w-full rounded-[20px] bg-white px-5 py-4 text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90"
+              >
+                下一个
+              </button>
+            ) : (
+              <>
+                <div className="mb-3 text-center text-sm text-slate-500">
+                  根据实际回忆难度评分
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {RATINGS.map((option) => (
+                    <button
+                      key={option.rating}
+                      type="button"
+                      onClick={() => void submitRating(option.rating)}
+                      disabled={submitting}
+                      className="min-h-16 rounded-[18px] border border-white/10 bg-white/[0.055] px-1 py-3 text-center transition duration-150 active:scale-[0.94] active:bg-white/[0.12] disabled:opacity-40"
+                    >
+                      <div className="text-base font-medium text-slate-200">
+                        {option.label}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
         )}
       </div>

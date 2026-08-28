@@ -68,6 +68,7 @@ export function formatStudyDiagnosticsReport(
     `db.reviewEvents=${database.reviewEvents}`,
     `db.progress=${database.progress}`,
     `db.settings=${database.settings}`,
+    `db.dailyStudyPlans=${database.dailyStudyPlans}`,
   ];
 
   return lines.join("\n");
