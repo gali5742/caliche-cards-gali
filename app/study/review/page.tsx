@@ -1,18 +1,41 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { MobileStudyReview } from "../../../components/study/MobileStudyReview";
 
+function subscribeToLocation() {
+  return () => undefined;
+}
+
 function ReviewRoute() {
   const searchParams = useSearchParams();
-  const languageId = searchParams.get("language") ?? undefined;
-  const collectionId = searchParams.get("collection") ?? undefined;
-  const rawBook = searchParams.get("book");
+  const browserSearch = useSyncExternalStore(
+    subscribeToLocation,
+    () => window.location.search,
+    () => ""
+  );
+
+  const resolvedParams = useMemo(() => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (
+      nextParams.get("language") &&
+      nextParams.get("collection") &&
+      nextParams.get("book")
+    ) {
+      return nextParams;
+    }
+
+    return new URLSearchParams(browserSearch);
+  }, [browserSearch, searchParams]);
+
+  const languageId = resolvedParams.get("language") ?? undefined;
+  const collectionId = resolvedParams.get("collection") ?? undefined;
+  const rawBook = resolvedParams.get("book");
   const parsedBook = rawBook ? Number(rawBook) : null;
   const book = parsedBook && Number.isInteger(parsedBook) ? parsedBook : null;
-  const mode = searchParams.get("mode") === "practice" ? "practice" : "scheduled";
+  const mode = resolvedParams.get("mode") === "practice" ? "practice" : "scheduled";
 
   return (
     <MobileStudyReview
