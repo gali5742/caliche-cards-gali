@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiBookOpen, FiPlus, FiRefreshCw, FiSettings } from "react-icons/fi";
+import { FiBookOpen, FiChevronRight, FiPlus, FiSettings } from "react-icons/fi";
 
 import type { ContentCollection } from "../../domain/content/types";
 import { IndexedDbDailyStudyRepository } from "../../lib/repositories/indexedDbDailyStudyRepository";
@@ -12,7 +12,6 @@ import { IndexedDbReviewRepository } from "../../lib/repositories/indexedDbRevie
 import { IndexedDbSettingsRepository } from "../../lib/repositories/indexedDbSettingsRepository";
 import { StaticVocabularyRepository } from "../../lib/repositories/staticVocabularyRepository";
 import {
-  initializeProgressToLatestRegisteredLesson,
   listRegisteredBooks,
   loadStudyHomeSnapshot,
   type StudyHomeSnapshot,
@@ -76,7 +75,6 @@ export function MobileStudyHome() {
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [snapshot, setSnapshot] = useState<StudyHomeSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(false);
   const [addingBatch, setAddingBatch] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
@@ -129,25 +127,6 @@ export function MobileStudyHome() {
     void reload();
   }, [reload]);
 
-  const initializeProgress = useCallback(async () => {
-    if (!selectedCollection || selectedBook === null) return;
-
-    setInitializing(true);
-    setError(null);
-    try {
-      await initializeProgressToLatestRegisteredLesson({
-        collection: selectedCollection,
-        book: selectedBook,
-        progressRepository: new IndexedDbProgressRepository(),
-      });
-      await reload();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "无法初始化学习进度");
-    } finally {
-      setInitializing(false);
-    }
-  }, [reload, selectedBook, selectedCollection]);
-
   const queue = snapshot?.queue;
   const total = queue?.totalItems ?? 0;
   const reviewHref =
@@ -159,6 +138,14 @@ export function MobileStudyHome() {
         )}&book=${selectedBook}`
       : null;
   const practiceHref = reviewHref ? `${reviewHref}&mode=practice` : null;
+  const progressHref =
+    selectedCollection && selectedBook !== null
+      ? `/study/progress?language=${encodeURIComponent(
+          selectedCollection.languageId
+        )}&collection=${encodeURIComponent(
+          selectedCollection.collectionId
+        )}&book=${selectedBook}`
+      : "/study/progress";
   const batchSize = snapshot?.settings.dailyNewVocabularyLimit ?? 0;
   const remainingNewVocabulary = queue?.availableNewVocabulary ?? 0;
   const canAddBatch =
@@ -313,7 +300,10 @@ export function MobileStudyHome() {
               />
             </section>
 
-            <section className="mt-5 rounded-[28px] border border-white/10 bg-white/[0.045] p-5">
+            <Link
+              href={progressHref}
+              className="mt-5 block rounded-[28px] border border-white/10 bg-white/[0.045] p-5 transition duration-150 active:scale-[0.985] active:bg-white/[0.075]"
+            >
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-300">
                   <FiBookOpen aria-hidden="true" size={19} />
@@ -324,14 +314,7 @@ export function MobileStudyHome() {
                     {formatProgress(snapshot)}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void reload()}
-                  className="rounded-full p-2.5 text-slate-500 transition duration-150 active:scale-90 active:bg-white/10 active:text-slate-300"
-                  aria-label="刷新今日复习"
-                >
-                  <FiRefreshCw aria-hidden="true" size={17} />
-                </button>
+                <FiChevronRight aria-hidden="true" className="text-slate-600" size={20} />
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/8 pt-4 text-sm">
@@ -348,7 +331,7 @@ export function MobileStudyHome() {
                   </div>
                 </div>
               </div>
-            </section>
+            </Link>
 
             <div className="mt-auto space-y-3 pt-8">
               {total > 0 && reviewHref ? (
@@ -392,22 +375,16 @@ export function MobileStudyHome() {
           <section className="mt-5 rounded-[28px] border border-white/10 bg-white/[0.045] p-5">
             <div className="text-lg font-medium text-white">设置学习进度</div>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              选择当前学习位置后即可开始复习。
+              选择已经学到的课次后即可开始复习。
             </p>
             {snapshot.latestRegisteredLesson ? (
-              <>
-                <div className="mt-5 rounded-2xl bg-black/20 px-4 py-3 text-sm text-slate-300">
-                  当前内容：第 {snapshot.book} 册 · Unité {snapshot.latestRegisteredLesson.unit} · Leçon {snapshot.latestRegisteredLesson.lesson}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void initializeProgress()}
-                  disabled={initializing}
-                  className="mt-4 w-full rounded-[20px] bg-white px-4 py-3.5 text-sm font-semibold text-slate-950 transition duration-150 active:scale-[0.97] disabled:opacity-50"
-                >
-                  {initializing ? "正在保存…" : "使用当前内容开始"}
-                </button>
-              </>
+              <Link
+                href={progressHref}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-[20px] bg-white px-4 py-3.5 text-sm font-semibold text-slate-950 transition duration-150 active:scale-[0.97]"
+              >
+                选择学习进度
+                <FiChevronRight aria-hidden="true" size={16} />
+              </Link>
             ) : (
               <div className="mt-4 text-sm text-slate-500">
                 当前词库还没有可学习的内容。
