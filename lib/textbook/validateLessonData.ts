@@ -17,6 +17,43 @@ function assertNonEmptyString(value: unknown, label: string): asserts value is s
   }
 }
 
+function validateVerbGrammar(value: unknown, label: string): void {
+  if (!isRecord(value)) throw new Error(`${label} must be an object`);
+
+  if (value.conjugationClass !== undefined) {
+    assertNonEmptyString(value.conjugationClass, `${label}.conjugationClass`);
+  }
+
+  if (value.conjugations === undefined) return;
+  if (!Array.isArray(value.conjugations)) {
+    throw new Error(`${label}.conjugations must be an array`);
+  }
+
+  value.conjugations.forEach((conjugation, conjugationIndex) => {
+    const conjugationLabel = `${label}.conjugations[${conjugationIndex}]`;
+    if (!isRecord(conjugation)) {
+      throw new Error(`${conjugationLabel} must be an object`);
+    }
+    assertNonEmptyString(conjugation.id, `${conjugationLabel}.id`);
+    assertNonEmptyString(conjugation.label, `${conjugationLabel}.label`);
+    if (!Array.isArray(conjugation.forms) || conjugation.forms.length === 0) {
+      throw new Error(`${conjugationLabel}.forms must be a non-empty array`);
+    }
+
+    conjugation.forms.forEach((form, formIndex) => {
+      const formLabel = `${conjugationLabel}.forms[${formIndex}]`;
+      if (!isRecord(form)) throw new Error(`${formLabel} must be an object`);
+      if (form.person !== undefined) {
+        assertNonEmptyString(form.person, `${formLabel}.person`);
+      }
+      assertNonEmptyString(form.form, `${formLabel}.form`);
+      if (form.ipa !== undefined) {
+        assertNonEmptyString(form.ipa, `${formLabel}.ipa`);
+      }
+    });
+  });
+}
+
 function validateEntry(
   value: unknown,
   lesson: {
@@ -83,6 +120,10 @@ function validateEntry(
         assertNonEmptyString(key, `entries[${index}].grammar.forms key`);
         assertNonEmptyString(form, `entries[${index}].grammar.forms.${key}`);
       }
+    }
+
+    if (value.grammar.verb !== undefined) {
+      validateVerbGrammar(value.grammar.verb, `entries[${index}].grammar.verb`);
     }
   }
 
