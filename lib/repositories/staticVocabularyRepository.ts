@@ -1,5 +1,6 @@
 import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import { listRegisteredLessons } from "../textbook/registry";
+import { vocabularyEntrySearchTerms } from "../vocabulary/searchTerms";
 import type {
   VocabularyLessonRef,
   VocabularyRepository,
@@ -66,18 +67,11 @@ export class StaticVocabularyRepository implements VocabularyRepository {
     const normalized = query.trim().toLocaleLowerCase();
     if (!normalized) return [];
 
-    return this.entries.filter((entry) => {
-      const haystack = [
-        entry.lemma,
-        entry.ipa ?? "",
-        entry.partOfSpeech,
-        ...entry.meaningsZh,
-        ...(entry.tags ?? []),
-      ]
+    return this.entries.filter((entry) =>
+      vocabularyEntrySearchTerms(entry)
         .join("\n")
-        .toLocaleLowerCase();
-
-      return haystack.includes(normalized);
-    });
+        .toLocaleLowerCase()
+        .includes(normalized)
+    );
   }
 }
