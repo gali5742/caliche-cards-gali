@@ -11,7 +11,6 @@ import {
 } from "react-icons/fi";
 
 import type { ReviewRating } from "../../domain/review/types";
-import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import { IndexedDbDailyStudyRepository } from "../../lib/repositories/indexedDbDailyStudyRepository";
 import { IndexedDbProgressRepository } from "../../lib/repositories/indexedDbProgressRepository";
 import { IndexedDbReviewRepository } from "../../lib/repositories/indexedDbReviewRepository";
@@ -27,6 +26,11 @@ import {
 } from "../../lib/runtime/studyReview";
 import { addDailyNewVocabularyBatch } from "../../lib/study/dailyNewVocabularyPlan";
 import { listRegisteredCollections } from "../../lib/textbook/registry";
+import {
+  vocabularyFormDetails,
+  vocabularyGrammarHeadline,
+} from "../../lib/vocabulary/presentation";
+import { VocabularyConjugationTable } from "./VocabularyConjugationTable";
 
 const RATINGS: Array<{
   rating: ReviewRating;
@@ -38,63 +42,10 @@ const RATINGS: Array<{
   { rating: "easy", label: "很熟" },
 ];
 
-const FRENCH_PART_OF_SPEECH: Record<string, string> = {
-  nom: "名词",
-  "nom propre": "专有名词",
-  verbe: "动词",
-  "verbe pronominal": "代词式动词",
-  adjectif: "形容词",
-  adverbe: "副词",
-  préposition: "介词",
-  pronom: "代词",
-  article: "冠词",
-  déterminant: "限定词",
-  conjonction: "连词",
-  interjection: "感叹词",
-  "locution adverbiale": "副词短语",
-  "locution prépositive": "介词短语",
-  "locution verbale": "动词短语",
-};
-
-const FRENCH_FORM_LABELS: Record<string, string> = {
-  feminine: "阴性形式",
-  masculine: "阳性形式",
-  plural: "复数",
-  singular: "单数",
-};
-
 function queueKindLabel(kind: "due" | "continuation" | "new"): string {
   if (kind === "due") return "到期复习";
   if (kind === "continuation") return "继续巩固";
   return "新词";
-}
-
-function partOfSpeechLabel(entry: VocabularyEntry): string {
-  if (entry.source.languageId === "fr") {
-    return FRENCH_PART_OF_SPEECH[entry.partOfSpeech] ?? entry.partOfSpeech;
-  }
-  return entry.partOfSpeech;
-}
-
-function genderLabel(entry: VocabularyEntry): string | null {
-  if (entry.source.languageId !== "fr") return entry.grammar?.gender ?? null;
-  if (entry.grammar?.gender === "feminine") return "阴性";
-  if (entry.grammar?.gender === "masculine") return "阳性";
-  return entry.grammar?.gender ?? null;
-}
-
-function grammarHeadline(entry: VocabularyEntry): string {
-  return [partOfSpeechLabel(entry), genderLabel(entry)].filter(Boolean).join(" · ");
-}
-
-function formDetails(entry: VocabularyEntry): string[] {
-  const forms = entry.grammar?.forms;
-  if (!forms) return [];
-  return Object.entries(forms).map(([key, value]) => {
-    const label =
-      entry.source.languageId === "fr" ? FRENCH_FORM_LABELS[key] ?? key : key;
-    return `${label}：${value}`;
-  });
 }
 
 export function MobileStudyReview({
@@ -374,8 +325,8 @@ export function MobileStudyReview({
   const isRecognition = current.item.skill === "recognition";
   const canContinue = isRecognition ? revealed : productionChecked;
   const progressPercent = total > 0 ? ((index + 1) / total) * 100 : 0;
-  const grammar = grammarHeadline(current.vocabulary);
-  const forms = formDetails(current.vocabulary);
+  const grammar = vocabularyGrammarHeadline(current.vocabulary);
+  const forms = vocabularyFormDetails(current.vocabulary);
 
   return (
     <main className="min-h-[100dvh] bg-[#07111d] text-slate-100">
@@ -457,6 +408,7 @@ export function MobileStudyReview({
                       ))}
                     </div>
                   )}
+                  <VocabularyConjugationTable entry={current.vocabulary} />
                 </div>
               )}
             </>
@@ -554,6 +506,7 @@ export function MobileStudyReview({
                       ))}
                     </div>
                   )}
+                  <VocabularyConjugationTable entry={current.vocabulary} />
                   {!productionCorrect && answer.trim() && (
                     <div className="mt-3 text-sm text-slate-500">
                       你的输入：{answer}
