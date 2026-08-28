@@ -137,13 +137,23 @@ function validateProgress(value: unknown): asserts value is StoredLearningProgre
 function validateSettings(value: unknown): asserts value is StoredStudySettings[] {
   assertArray(value, "settings");
   for (const row of value) {
+    const dailyNewVocabularyLimit = isRecord(row) && isRecord(row.value)
+      ? row.value.dailyNewVocabularyLimit
+      : undefined;
+    const fsrsRequestRetention = isRecord(row) && isRecord(row.value)
+      ? row.value.fsrsRequestRetention
+      : undefined;
+
     if (
       !isRecord(row) ||
       row.id !== "study" ||
       !isRecord(row.value) ||
-      !isNonNegativeInteger(row.value.dailyNewVocabularyLimit) ||
+      !isNonNegativeInteger(dailyNewVocabularyLimit) ||
+      Number(dailyNewVocabularyLimit) > 100 ||
       typeof row.value.productionEnabled !== "boolean" ||
-      !isFiniteNumber(row.value.fsrsRequestRetention) ||
+      !isFiniteNumber(fsrsRequestRetention) ||
+      Number(fsrsRequestRetention) < 0.7 ||
+      Number(fsrsRequestRetention) > 0.99 ||
       !isFiniteNumber(row.updatedAt)
     ) {
       throw new Error("settings 中存在无效记录");
@@ -242,12 +252,14 @@ export async function restoreStudyBackup(
 ): Promise<void> {
   await db.transaction(
     "rw",
-    db.reviewItems,
-    db.reviewStates,
-    db.reviewEvents,
-    db.progress,
-    db.settings,
-    db.dailyStudyPlans,
+    [
+      db.reviewItems,
+      db.reviewStates,
+      db.reviewEvents,
+      db.progress,
+      db.settings,
+      db.dailyStudyPlans,
+    ],
     async () => {
       await Promise.all([
         db.reviewItems.clear(),
