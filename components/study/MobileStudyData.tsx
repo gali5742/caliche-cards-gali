@@ -33,6 +33,20 @@ function formatBackupTime(timestamp: number): string {
   }).format(new Date(timestamp));
 }
 
+function downloadBackupFile(file: File, filename: string): void {
+  const url = URL.createObjectURL(file);
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
 async function exportBackupFile(backup: StudyBackup): Promise<void> {
   const filename = buildStudyBackupFilename(backup.exportedAt);
   const text = JSON.stringify(backup, null, 2);
@@ -47,21 +61,15 @@ async function exportBackupFile(backup: StudyBackup): Promise<void> {
     shareNavigator.share &&
     (!shareNavigator.canShare || shareNavigator.canShare(shareData))
   ) {
-    await shareNavigator.share(shareData);
-    return;
+    try {
+      await shareNavigator.share(shareData);
+      return;
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+    }
   }
 
-  const url = URL.createObjectURL(file);
-  try {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } finally {
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+  downloadBackupFile(file, filename);
 }
 
 export function MobileStudyData() {
