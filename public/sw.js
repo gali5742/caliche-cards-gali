@@ -1,19 +1,15 @@
 // Bump this when changing caching behavior to ensure old caches are dropped.
-const CACHE_NAME = "language-study-v6";
+const CACHE_NAME = "language-study-v7";
 
 const PRECACHE_URLS = [
   "/",
   "/study",
   "/study/review",
+  "/study/progress",
   "/study/settings",
   "/study/diagnostics",
   "/manifest.webmanifest",
   "/sql-wasm.wasm",
-  "/favicon.ico",
-  "/favicon-16x16.png",
-  "/favicon-32x32.png",
-  "/apple-touch-icon.png",
-  "/apple-touch-icon-precomposed.png",
   "/icon",
   "/apple-icon",
 ];
@@ -21,6 +17,7 @@ const PRECACHE_URLS = [
 function shellFallbackPath(pathname) {
   if (pathname.startsWith("/study/diagnostics")) return "/study/diagnostics";
   if (pathname.startsWith("/study/settings")) return "/study/settings";
+  if (pathname.startsWith("/study/progress")) return "/study/progress";
   if (pathname.startsWith("/study/review")) return "/study/review";
   return pathname.startsWith("/study") ? "/study" : "/";
 }
@@ -31,8 +28,6 @@ async function precacheIndividually(cache) {
       const request = new Request(url, { cache: "reload" });
       const response = await fetch(request);
 
-      // Do not pin auth/login redirects (or other redirected responses) under
-      // an offline shell key. A failure for one URL must not block the rest.
       if (!response.ok || response.redirected) {
         throw new Error(`Unable to precache ${url}`);
       }
@@ -72,37 +67,6 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) return;
-
-  if (
-    url.pathname === "/favicon.ico" ||
-    url.pathname === "/favicon-16x16.png" ||
-    url.pathname === "/favicon-32x32.png" ||
-    url.pathname === "/apple-touch-icon.png" ||
-    url.pathname === "/apple-touch-icon-precomposed.png" ||
-    url.pathname === "/logo.ico" ||
-    url.pathname === "/logo.png" ||
-    url.pathname === "/logo-180.png" ||
-    url.pathname === "/logo-192.png" ||
-    url.pathname === "/logo-512.png"
-  ) {
-    event.respondWith(
-      (async () => {
-        const cache = await caches.open(CACHE_NAME);
-        const cached = await cache.match(request);
-        if (cached) return cached;
-        try {
-          const response = await fetch(request);
-          if (response && response.status === 200) {
-            cache.put(request, response.clone());
-          }
-          return response;
-        } catch {
-          return Response.error();
-        }
-      })()
-    );
-    return;
-  }
 
   // iOS Safari can wait tens of seconds before failing an offline navigation.
   // Use a short timeout, then serve the route-specific cached shell.
