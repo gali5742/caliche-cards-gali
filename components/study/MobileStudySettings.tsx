@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiActivity, FiArrowLeft, FiCheck, FiRotateCcw } from "react-icons/fi";
+import {
+  FiActivity,
+  FiArchive,
+  FiArrowLeft,
+  FiCheck,
+  FiRotateCcw,
+} from "react-icons/fi";
 
 import type { StudySettings } from "../../domain/settings/types";
 import { IndexedDbSettingsRepository } from "../../lib/repositories/indexedDbSettingsRepository";
@@ -241,6 +247,24 @@ export function MobileStudySettings() {
                 <span>99%</span>
               </div>
             </SettingsSection>
+
+            <Link
+              href="/study/data"
+              className="flex items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.035] px-5 py-4 transition duration-150 active:scale-[0.98] active:bg-white/[0.08]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-300">
+                  <FiArchive aria-hidden="true" size={18} />
+                </div>
+                <div>
+                  <div className="text-base font-medium text-slate-200">备份与恢复</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    导出或恢复学习数据
+                  </div>
+                </div>
+              </div>
+              <span className="text-xl text-slate-600">›</span>
+            </Link>
 
             <Link
               href="/study/diagnostics"
