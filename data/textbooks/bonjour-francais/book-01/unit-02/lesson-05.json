@@ -5,7 +5,7 @@
   "book": 1,
   "unit": 2,
   "lesson": 5,
-  "coverage": "partial",
+  "coverage": "complete",
   "entries": [
     {"id":"fr:bonjour-francais:b1-u2-l5-affiche","lemma":"affiche","ipa":"/a.fiʃ/","meaningsZh":["海报","广告"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
     {"id":"fr:bonjour-francais:b1-u2-l5-assiette","lemma":"assiette","ipa":"/a.sjɛt/","meaningsZh":["盘子"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
@@ -40,7 +40,19 @@
     {"id":"fr:bonjour-francais:b1-u2-l5-oh","lemma":"oh","ipa":"/o/","meaningsZh":["啊","哦","哟","哎呀"],"partOfSpeech":"interjection"},
     {"id":"fr:bonjour-francais:b1-u2-l5-ordinateur","lemma":"ordinateur","ipa":"/ɔʁ.di.na.tœʁ/","meaningsZh":["电脑"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
     {"id":"fr:bonjour-francais:b1-u2-l5-piece","lemma":"pièce","ipa":"/pjɛs/","meaningsZh":["房间"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-pomme","lemma":"pomme","ipa":"/pɔm/","meaningsZh":["苹果"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-porte","lemma":"porte","ipa":"/pɔʁt/","meaningsZh":["门"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-que","lemma":"que","ipa":"/kə/","meaningsZh":["什么"],"partOfSpeech":"pronom interrogatif"},
+    {"id":"fr:bonjour-francais:b1-u2-l5-sac","lemma":"sac","ipa":"/sak/","meaningsZh":["包"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
     {"id":"fr:bonjour-francais:b1-u2-l5-sous","lemma":"sous","ipa":"/su/","meaningsZh":["在……下面"],"partOfSpeech":"préposition"},
-    {"id":"fr:bonjour-francais:b1-u2-l5-sur","lemma":"sur","ipa":"/syʁ/","meaningsZh":["在……上面"],"partOfSpeech":"préposition"}
+    {"id":"fr:bonjour-francais:b1-u2-l5-sur","lemma":"sur","ipa":"/syʁ/","meaningsZh":["在……上面"],"partOfSpeech":"préposition"},
+    {"id":"fr:bonjour-francais:b1-u2-l5-table","lemma":"table","ipa":"/tabl/","meaningsZh":["桌子"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-tapis","lemma":"tapis","ipa":"/ta.pi/","meaningsZh":["地毯"],"partOfSpeech":"nom","grammar":{"gender":"masculine","forms":{"plural":"tapis"}}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-trouver","lemma":"trouver","ipa":"/tʁu.ve/","meaningsZh":["找到","发现"],"partOfSpeech":"verbe","grammar":{"verb":{"conjugationClass":"regular-er","conjugations":[{"id":"present-indicative","label":"直陈式现在时","forms":[{"person":"1s","form":"je trouve","ipa":"/ʒə tʁuv/"},{"person":"2s","form":"tu trouves","ipa":"/ty tʁuv/"},{"person":"3s","form":"il / elle trouve","ipa":"/il tʁuv, ɛl tʁuv/"},{"person":"1p","form":"nous trouvons","ipa":"/nu tʁuvɔ̃/"},{"person":"2p","form":"vous trouvez","ipa":"/vu tʁuve/"},{"person":"3p","form":"ils / elles trouvent","ipa":"/il tʁuv, ɛl tʁuv/"}]}]}}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-vase","lemma":"vase","ipa":"/vaz/","meaningsZh":["花瓶"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-verre","lemma":"verre","ipa":"/vɛʁ/","meaningsZh":["玻璃杯"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l5-voila","lemma":"voilà","ipa":"/vwa.la/","meaningsZh":["那就是","这就是"],"partOfSpeech":"présentatif"},
+    {"id":"fr:bonjour-francais:b1-u2-l5-derriere","lemma":"derrière","ipa":"/dɛ.ʁjɛʁ/","meaningsZh":["在……后面"],"partOfSpeech":"préposition","tags":["supplemental","lesson-exercise"]},
+    {"id":"fr:bonjour-francais:b1-u2-l5-entre","lemma":"entre","ipa":"/ɑ̃tʁ/","meaningsZh":["在……之间"],"partOfSpeech":"préposition","tags":["supplemental","lesson-exercise"]}
   ]
 }
