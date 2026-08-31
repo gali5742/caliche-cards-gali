@@ -2,6 +2,7 @@ import type { TodayReviewQueueEntry } from "./todayReviewQueue";
 import { readFsrsSchedulerState } from "../srs/fsrsMapping";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SIBLING_GAP = 3;
 
 export const DEFAULT_PRACTICE_ITEM_LIMIT = 20;
 
@@ -70,17 +71,18 @@ function separateSiblingItems(
   const ordered = [...entries];
 
   for (let index = 1; index < ordered.length; index += 1) {
-    if (
-      ordered[index].item.vocabularyId !==
-      ordered[index - 1].item.vocabularyId
-    ) {
-      continue;
-    }
+    const recentVocabularyIds = new Set(
+      ordered
+        .slice(Math.max(0, index - SIBLING_GAP), index)
+        .map((entry) => entry.item.vocabularyId)
+    );
+
+    if (!recentVocabularyIds.has(ordered[index].item.vocabularyId)) continue;
 
     const replacementIndex = ordered.findIndex(
       (candidate, candidateIndex) =>
         candidateIndex > index &&
-        candidate.item.vocabularyId !== ordered[index - 1].item.vocabularyId
+        !recentVocabularyIds.has(candidate.item.vocabularyId)
     );
 
     if (replacementIndex > index) {
