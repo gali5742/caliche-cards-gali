@@ -4,21 +4,23 @@ import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import type { ReviewRepository } from "../repositories/reviewRepository";
 import type { VocabularyRepository } from "../repositories/vocabularyRepository";
 import { isNewFsrsSchedulerState } from "../srs/fsrsState";
+import {
+  DEFAULT_PRACTICE_ITEM_LIMIT,
+  samplePracticeEntries,
+} from "./practiceSampling";
 import type {
   TodayReviewQueue,
   TodayReviewQueueEntry,
 } from "./todayReviewQueue";
 import { generateReviewItems } from "./reviewItemGenerator";
 
-function skillOrder(skill: ReviewSkill): number {
-  return skill === "recognition" ? 0 : 1;
-}
-
 export async function buildPracticeReviewQueue(input: {
   progress: LearningProgress;
   vocabularyRepository: VocabularyRepository;
   reviewRepository: ReviewRepository;
   skills: readonly ReviewSkill[];
+  now: number;
+  itemLimit?: number;
 }): Promise<TodayReviewQueue> {
   const lessonRef = {
     languageId: input.progress.languageId,
@@ -80,14 +82,11 @@ export async function buildPracticeReviewQueue(input: {
   const vocabularyById = new Map<string, VocabularyEntry>(
     learnedVocabulary.map((entry) => [entry.id, entry])
   );
-  const vocabularyOrder = new Map(
-    learnedVocabulary.map((entry, index) => [entry.id, index])
-  );
 
   const practiceItems = generateReviewItems(learnedVocabulary, {
     skills: input.skills,
   });
-  const entries: TodayReviewQueueEntry[] = [];
+  const eligibleEntries: TodayReviewQueueEntry[] = [];
 
   for (const generatedItem of practiceItems) {
     const item = storedItemById.get(generatedItem.id);
@@ -95,7 +94,7 @@ export async function buildPracticeReviewQueue(input: {
     const state = item ? stateByItemId.get(item.id) : undefined;
     if (!item?.enabled || !entry || !state) continue;
 
-    entries.push({
+    eligibleEntries.push({
       item,
       vocabulary: entry,
       state,
@@ -103,12 +102,11 @@ export async function buildPracticeReviewQueue(input: {
     });
   }
 
-  entries.sort(
-    (a, b) =>
-      skillOrder(a.item.skill) - skillOrder(b.item.skill) ||
-      (vocabularyOrder.get(a.item.vocabularyId) ?? Number.MAX_SAFE_INTEGER) -
-        (vocabularyOrder.get(b.item.vocabularyId) ?? Number.MAX_SAFE_INTEGER)
-  );
+  const entries = samplePracticeEntries({
+    entries: eligibleEntries,
+    now: input.now,
+    limit: input.itemLimit ?? DEFAULT_PRACTICE_ITEM_LIMIT,
+  });
 
   return {
     entries,
