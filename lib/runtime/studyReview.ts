@@ -112,6 +112,7 @@ export async function loadStudyPracticeSession(
     vocabularyRepository: input.vocabularyRepository,
     reviewRepository: input.reviewRepository,
     skills: runtime.reviewSkills,
+    now: input.now,
   });
 
   return {
