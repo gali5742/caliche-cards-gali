@@ -1,0 +1,11 @@
+.viewport {
+  min-height: 100svh;
+  background: #07111d;
+  overflow-anchor: none;
+}
+
+.viewport > main,
+.viewport > main > div {
+  min-height: 100svh !important;
+  overflow-anchor: none;
+}
