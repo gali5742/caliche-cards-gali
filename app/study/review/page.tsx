@@ -4,6 +4,7 @@ import { Suspense, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { MobileStudyReview } from "../../../components/study/MobileStudyReview";
+import styles from "./review.module.css";
 
 function subscribeToLocation() {
   return () => undefined;
@@ -38,12 +39,14 @@ function ReviewRoute() {
   const mode = resolvedParams.get("mode") === "practice" ? "practice" : "scheduled";
 
   return (
-    <MobileStudyReview
-      languageId={languageId}
-      collectionId={collectionId}
-      book={book}
-      mode={mode}
-    />
+    <div className={styles.viewport}>
+      <MobileStudyReview
+        languageId={languageId}
+        collectionId={collectionId}
+        book={book}
+        mode={mode}
+      />
+    </div>
   );
 }
 
@@ -51,7 +54,7 @@ export default function StudyReviewPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-[100dvh] items-center justify-center bg-[#07111d] px-6 text-sm text-slate-500">
+        <main className="flex min-h-[100svh] items-center justify-center bg-[#07111d] px-6 text-sm text-slate-500">
           正在打开复习…
         </main>
       }
