@@ -3,6 +3,11 @@ import lessonB1U1L2 from "../../data/textbooks/bonjour-francais/book-01/unit-01/
 import lessonB1U1L3 from "../../data/textbooks/bonjour-francais/book-01/unit-01/lesson-03.json";
 import lessonB1U1L4 from "../../data/textbooks/bonjour-francais/book-01/unit-01/lesson-04.json";
 import lessonB1U2L5 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-05.json";
+import expansionB1U1L1 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-01.json";
+import expansionB1U1L2 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-02.json";
+import expansionB1U1L3 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-03.json";
+import expansionB1U1L4 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-04.json";
+import expansionB1U2L5 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-02/lesson-05.json";
 import type {
   ContentCollection,
   ContentCollectionRef,
@@ -16,6 +21,12 @@ const COLLECTIONS: ContentCollection[] = [
     collectionId: "bonjour-francais",
     kind: "textbook",
     title: "你好！法语",
+  },
+  {
+    languageId: "fr",
+    collectionId: "bonjour-francais-theme-expansion",
+    kind: "textbook",
+    title: "你好！法语 · 主题拓展",
   },
 ];
 
@@ -47,6 +58,11 @@ const LESSONS: TextbookLessonData[] = validateRegistry([
   validateLessonData(lessonB1U1L3),
   validateLessonData(lessonB1U1L4),
   validateLessonData(lessonB1U2L5),
+  validateLessonData(expansionB1U1L1),
+  validateLessonData(expansionB1U1L2),
+  validateLessonData(expansionB1U1L3),
+  validateLessonData(expansionB1U1L4),
+  validateLessonData(expansionB1U2L5),
 ]);
 
 function matchesCollection(
