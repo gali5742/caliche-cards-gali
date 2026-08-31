@@ -23,7 +23,7 @@ The native study app supports:
 - production review: Chinese meaning → type the foreign-language lemma
 - independent FSRS state for recognition and production
 - four FSRS ratings: Again / Hard / Good / Easy, shown to the learner as 忘了 / 困难 / 记得 / 很熟
-- free review of already learned vocabulary without changing scheduled review state
+- read-only FSRS-weighted free-review sampling of already learned ReviewItems without changing scheduled review state
 - textbook-order vocabulary browsing and local search by foreign-language form, Chinese meaning, IPA, part of speech and stored forms
 - learned/all vocabulary scopes with lesson filtering
 - noun gender plus notable stored inflected forms such as irregular or invariant plurals
@@ -54,9 +54,9 @@ Current Book 1 coverage:
 - Unité 1 / Leçon 2 — complete
 - Unité 1 / Leçon 3 — complete
 - Unité 1 / Leçon 4 — complete
-- Unité 2 / Leçon 5 — partial, matching the currently entered studied portion
+- Unité 2 / Leçon 5 — complete
 
-Lesson data is stored under `data/textbooks/` and validated at startup. Vocabulary IDs are globally namespaced by language and collection.
+Lesson data is stored under `data/textbooks/` and validated at startup. Vocabulary IDs are globally namespaced by language and collection. Clearly taught lesson vocabulary may also be registered as supplemental lesson entries even when the printed `Vocabulaire` table omits it.
 
 A vocabulary entry can contain:
 
@@ -109,7 +109,7 @@ Today's scheduled queue is composed in this order:
 
 The daily new-word limit counts vocabulary entries rather than individual review items. Fresh recognition items are presented before fresh production items to reduce immediate answer leakage.
 
-Free review is a separate practice mode. It reads learned vocabulary and existing local states, presents recognition before production, and advances with a simple Next action rather than writing synthetic difficulty ratings.
+Free review is a separate practice mode. Each session samples up to 20 eligible already-learned ReviewItems without replacement, using the existing FSRS state as read-only weighting. Due or near-due items, higher-difficulty items, lower-stability items, items with more lapses and items further through their current interval receive more weight, while stable or recently reviewed items keep a non-zero chance of selection. Recognition and production are weighted independently by their own FSRS states, and sibling skills for the same vocabulary are kept apart when alternatives are available. Advancing free review does not write FSRS state or ReviewEvent history.
 
 Grammar details and verb conjugations are shown only after a recognition answer is revealed or a production answer is checked, so they do not act as prompt-side answer cues.
 
