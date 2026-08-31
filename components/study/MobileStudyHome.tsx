@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { FiBookOpen, FiChevronRight, FiPlus, FiSettings } from "react-icons/fi";
 
 import type { ContentCollection } from "../../domain/content/types";
@@ -19,8 +25,72 @@ import {
 import { addDailyNewVocabularyBatch } from "../../lib/study/dailyNewVocabularyPlan";
 import { listRegisteredCollections } from "../../lib/textbook/registry";
 
+const SELECTED_COLLECTION_STORAGE_KEY = "language-study.selected-collection.v1";
+const SELECTED_COLLECTION_CHANGED_EVENT = "language-study:selected-collection";
+
 function collectionKey(collection: ContentCollection): string {
   return `${collection.languageId}:${collection.collectionId}`;
+}
+
+function isRegisteredCollectionKey(
+  value: string,
+  collections: ContentCollection[]
+): boolean {
+  return collections.some((collection) => collectionKey(collection) === value);
+}
+
+function defaultCollectionKey(collections: ContentCollection[]): string {
+  return collections[0] ? collectionKey(collections[0]) : "";
+}
+
+function useSelectedCollectionKey(collections: ContentCollection[]): string {
+  const fallbackKey = useMemo(() => defaultCollectionKey(collections), [collections]);
+
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === SELECTED_COLLECTION_STORAGE_KEY) {
+        onStoreChange();
+      }
+    };
+    const handleLocalChange = () => onStoreChange();
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(SELECTED_COLLECTION_CHANGED_EVENT, handleLocalChange);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(SELECTED_COLLECTION_CHANGED_EVENT, handleLocalChange);
+    };
+  }, []);
+
+  const getSnapshot = useCallback(() => {
+    try {
+      const stored = window.localStorage.getItem(SELECTED_COLLECTION_STORAGE_KEY);
+      if (stored && isRegisteredCollectionKey(stored, collections)) {
+        return stored;
+      }
+    } catch {
+      // Storage can be unavailable in restricted browser contexts.
+    }
+    return fallbackKey;
+  }, [collections, fallbackKey]);
+
+  const getServerSnapshot = useCallback(() => fallbackKey, [fallbackKey]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+function persistSelectedCollectionKey(
+  value: string,
+  collections: ContentCollection[]
+): void {
+  if (!isRegisteredCollectionKey(value, collections)) return;
+
+  try {
+    window.localStorage.setItem(SELECTED_COLLECTION_STORAGE_KEY, value);
+  } catch {
+    // Keep selection usable for the current page even when storage is blocked.
+  }
+  window.dispatchEvent(new Event(SELECTED_COLLECTION_CHANGED_EVENT));
 }
 
 function formatProgress(snapshot: StudyHomeSnapshot): string {
@@ -58,9 +128,7 @@ export function MobileStudyHome() {
     () => new IndexedDbDailyStudyRepository(),
     []
   );
-  const [selectedCollectionKey, setSelectedCollectionKey] = useState(() =>
-    collections.length === 1 ? collectionKey(collections[0]) : ""
-  );
+  const selectedCollectionKey = useSelectedCollectionKey(collections);
   const selectedCollection = useMemo(
     () =>
       collections.find(
@@ -250,9 +318,10 @@ export function MobileStudyHome() {
               <select
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3 text-base text-white"
                 value={selectedCollectionKey}
-                onChange={(event) => setSelectedCollectionKey(event.target.value)}
+                onChange={(event) =>
+                  persistSelectedCollectionKey(event.target.value, collections)
+                }
               >
-                <option value="">选择词库</option>
                 {collections.map((collection) => (
                   <option
                     key={collectionKey(collection)}
