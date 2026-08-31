@@ -35,7 +35,7 @@ function MetricCard({
   hint,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   hint: string;
 }) {
   return (
@@ -129,6 +129,19 @@ export function MobileStudyHome() {
 
   const queue = snapshot?.queue;
   const total = queue?.totalItems ?? 0;
+  const scheduledReviewItems = queue?.scheduledReviewItems ?? 0;
+  const sameDayReinforcementItems = queue?.sameDayReinforcementItems ?? 0;
+  const introducedVocabularyToday = queue?.introducedVocabularyToday ?? 0;
+  const dailyNewVocabularyTarget = queue?.dailyNewVocabularyTarget ?? 0;
+  const pendingNewItems = queue?.newItems ?? 0;
+  const dailyNewComplete =
+    dailyNewVocabularyTarget > 0 &&
+    introducedVocabularyToday >= dailyNewVocabularyTarget;
+  const onlySameDayReinforcement =
+    total > 0 &&
+    sameDayReinforcementItems > 0 &&
+    scheduledReviewItems === 0 &&
+    pendingNewItems === 0;
   const reviewHref =
     selectedCollection && selectedBook !== null
       ? `/study/review?language=${encodeURIComponent(
@@ -295,25 +308,37 @@ export function MobileStudyHome() {
           <>
             <section className="mt-5 grid grid-cols-3 gap-2.5">
               <MetricCard
-                label="到期"
-                value={queue?.dueItems ?? 0}
-                hint="到期任务"
+                label="复习"
+                value={scheduledReviewItems}
+                hint="此前学习到期"
               />
               <MetricCard
-                label="继续"
-                value={queue?.continuationItems ?? 0}
-                hint="继续巩固"
+                label="同日巩固"
+                value={sameDayReinforcementItems}
+                hint="今天再次安排"
               />
               <MetricCard
-                label="新词"
-                value={queue?.newVocabulary ?? 0}
+                label="今日新词"
+                value={`${introducedVocabularyToday}/${dailyNewVocabularyTarget}`}
                 hint={
-                  snapshot.dailyExtraNewVocabulary > 0
-                    ? `今日已扩至 ${snapshot.effectiveDailyNewVocabularyLimit}`
-                    : `默认 ${snapshot.settings.dailyNewVocabularyLimit}`
+                  dailyNewVocabularyTarget === 0
+                    ? "今日无新增"
+                    : dailyNewComplete
+                      ? "额度已完成"
+                      : `还需 ${Math.max(
+                          0,
+                          dailyNewVocabularyTarget - introducedVocabularyToday
+                        )} 个`
                 }
               />
             </section>
+
+            {dailyNewComplete && sameDayReinforcementItems > 0 && (
+              <div className="mt-3 rounded-2xl border border-sky-300/12 bg-sky-300/[0.055] px-4 py-3 text-xs leading-5 text-slate-400">
+                今日新词额度已完成；这 {sameDayReinforcementItems} 项是 FSRS
+                安排的同日巩固，不会重新计入新词。
+              </div>
+            )}
 
             <Link
               href={progressHref}
@@ -354,11 +379,13 @@ export function MobileStudyHome() {
                   href={reviewHref}
                   className="block w-full rounded-[22px] bg-sky-400 px-5 py-4 text-center text-base font-semibold text-slate-950 transition duration-150 active:scale-[0.97] active:brightness-90"
                 >
-                  开始复习 · {total}
+                  {onlySameDayReinforcement
+                    ? `同日巩固 · ${sameDayReinforcementItems}`
+                    : `开始复习 · ${total}`}
                 </Link>
               ) : (
                 <div className="w-full rounded-[22px] border border-emerald-400/15 bg-emerald-400/8 px-5 py-4 text-center text-base font-semibold text-emerald-200">
-                  今日已完成
+                  当前任务已完成
                 </div>
               )}
 

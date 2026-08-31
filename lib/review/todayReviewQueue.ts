@@ -26,9 +26,12 @@ export type TodayReviewQueueEntry = {
 export type TodayReviewQueueSummary = {
   dueItems: number;
   continuationItems: number;
+  scheduledReviewItems: number;
+  sameDayReinforcementItems: number;
   newItems: number;
   newVocabulary: number;
   introducedVocabularyToday: number;
+  dailyNewVocabularyTarget: number;
   remainingNewVocabularyCapacity: number;
   availableNewVocabulary: number;
   totalItems: number;
@@ -223,15 +226,27 @@ export async function buildTodayReviewQueue(
         (vocabularyOrder.get(b.item.vocabularyId) ?? Number.MAX_SAFE_INTEGER)
   );
 
+  const reinforcementCandidates = [...dueEntries, ...continuationEntries];
+  const sameDayReinforcementItems = reinforcementCandidates.filter((entry) =>
+    introducedToday.has(entry.item.vocabularyId)
+  ).length;
+  const scheduledReviewItems =
+    reinforcementCandidates.length - sameDayReinforcementItems;
+  const dailyNewVocabularyTarget =
+    introducedToday.size + selectedFreshVocabularyIds.size;
   const entries = [...dueEntries, ...continuationEntries, ...newEntries];
+
   return {
     entries,
     summary: {
       dueItems: dueEntries.length,
       continuationItems: continuationEntries.length,
+      scheduledReviewItems,
+      sameDayReinforcementItems,
       newItems: newEntries.length,
       newVocabulary: selectedFreshVocabularyIds.size,
       introducedVocabularyToday: introducedToday.size,
+      dailyNewVocabularyTarget,
       remainingNewVocabularyCapacity,
       availableNewVocabulary: freshVocabularyIds.length,
       totalItems: entries.length,
