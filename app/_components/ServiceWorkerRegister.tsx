@@ -2,6 +2,27 @@
 
 import { useEffect } from "react";
 
+const REFRESH_APP_SHELL_MESSAGE = "REFRESH_APP_SHELL";
+
+async function registerAndRefreshServiceWorker() {
+  const registration = await navigator.serviceWorker.register("/sw.js", {
+    updateViaCache: "none",
+  });
+
+  try {
+    await registration.update();
+  } catch {
+    // Keep the current worker if an update check cannot complete.
+  }
+
+  try {
+    const readyRegistration = await navigator.serviceWorker.ready;
+    readyRegistration.active?.postMessage({ type: REFRESH_APP_SHELL_MESSAGE });
+  } catch {
+    // Startup shell warming is opportunistic and must not block the app.
+  }
+}
+
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -10,14 +31,17 @@ export function ServiceWorkerRegister() {
     if (!("serviceWorker" in navigator)) return;
 
     const onLoad = () => {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .catch(() => {
-          // ignore
-        });
+      void registerAndRefreshServiceWorker().catch(() => {
+        // Service worker setup must never block normal app startup.
+      });
     };
 
-    window.addEventListener("load", onLoad);
+    if (document.readyState === "complete") {
+      onLoad();
+      return;
+    }
+
+    window.addEventListener("load", onLoad, { once: true });
     return () => window.removeEventListener("load", onLoad);
   }, []);
 
