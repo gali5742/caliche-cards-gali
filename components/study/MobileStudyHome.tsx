@@ -202,6 +202,8 @@ export function MobileStudyHome() {
   const introducedVocabularyToday = queue?.introducedVocabularyToday ?? 0;
   const dailyNewVocabularyTarget = queue?.dailyNewVocabularyTarget ?? 0;
   const pendingNewItems = queue?.newItems ?? 0;
+  const completedFormalReviewVocabulary =
+    snapshot?.completedFormalReviewVocabulary ?? 0;
   const dailyNewComplete =
     dailyNewVocabularyTarget > 0 &&
     introducedVocabularyToday >= dailyNewVocabularyTarget;
@@ -399,6 +401,14 @@ export function MobileStudyHome() {
                           dailyNewVocabularyTarget - introducedVocabularyToday
                         )} 个`
                 }
+              />
+            </section>
+
+            <section className="mt-3">
+              <MetricCard
+                label="已正式复习"
+                value={completedFormalReviewVocabulary}
+                hint="当前词库累计 · 按词去重"
               />
             </section>
 
