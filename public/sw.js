@@ -1,7 +1,8 @@
 // Bump this when changing caching behavior to ensure old caches are dropped.
-const CACHE_NAME = "language-study-v10";
+const CACHE_NAME = "language-study-v11";
+const REFRESH_APP_SHELL_MESSAGE = "REFRESH_APP_SHELL";
 
-const PRECACHE_URLS = [
+const APP_SHELL_ROUTES = [
   "/",
   "/study",
   "/study/review",
@@ -10,11 +11,16 @@ const PRECACHE_URLS = [
   "/study/settings",
   "/study/data",
   "/study/diagnostics",
+];
+
+const STATIC_PRECACHE_URLS = [
   "/manifest.webmanifest",
   "/sql-wasm.wasm",
   "/icon",
   "/apple-icon",
 ];
+
+let shellRefreshInFlight = null;
 
 function shellFallbackPath(pathname) {
   if (pathname.startsWith("/study/diagnostics")) return "/study/diagnostics";
@@ -26,26 +32,88 @@ function shellFallbackPath(pathname) {
   return pathname.startsWith("/study") ? "/study" : "/";
 }
 
-async function precacheIndividually(cache) {
-  await Promise.allSettled(
-    PRECACHE_URLS.map(async (url) => {
-      const request = new Request(url, { cache: "reload" });
-      const response = await fetch(request);
+function extractNextStaticAssets(html, baseUrl) {
+  const assets = new Set();
+  const attributePattern = /(?:src|href)=["']([^"']+)["']/gi;
 
-      if (!response.ok || response.redirected) {
-        throw new Error(`Unable to precache ${url}`);
+  for (const match of html.matchAll(attributePattern)) {
+    const rawValue = match[1].replaceAll("&amp;", "&");
+    try {
+      const assetUrl = new URL(rawValue, baseUrl);
+      if (
+        assetUrl.origin === self.location.origin &&
+        assetUrl.pathname.startsWith("/_next/static/")
+      ) {
+        assets.add(assetUrl.href);
       }
+    } catch {
+      // Ignore malformed or non-URL attributes.
+    }
+  }
 
-      await cache.put(request, response);
-    })
+  return assets;
+}
+
+async function fetchFresh(url) {
+  const request = new Request(url, { cache: "reload" });
+  const response = await fetch(request);
+
+  if (!response.ok || response.redirected) {
+    throw new Error(`Unable to refresh ${url}`);
+  }
+
+  return { request, response };
+}
+
+async function refreshRouteShell(cache, url) {
+  const { request, response } = await fetchFresh(url);
+  await cache.put(request, response.clone());
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return [];
+
+  const html = await response.text();
+  return [...extractNextStaticAssets(html, request.url)];
+}
+
+async function refreshCachedAsset(cache, url) {
+  const { request, response } = await fetchFresh(url);
+  await cache.put(request, response.clone());
+}
+
+async function refreshAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  const routeResults = await Promise.allSettled(
+    APP_SHELL_ROUTES.map((url) => refreshRouteShell(cache, url))
   );
+
+  const nextStaticAssets = new Set();
+  for (const result of routeResults) {
+    if (result.status !== "fulfilled") continue;
+    for (const assetUrl of result.value) {
+      nextStaticAssets.add(assetUrl);
+    }
+  }
+
+  await Promise.allSettled([
+    ...STATIC_PRECACHE_URLS.map((url) => refreshCachedAsset(cache, url)),
+    ...[...nextStaticAssets].map((url) => refreshCachedAsset(cache, url)),
+  ]);
+}
+
+function refreshAppShellOnce() {
+  if (!shellRefreshInFlight) {
+    shellRefreshInFlight = refreshAppShell().finally(() => {
+      shellRefreshInFlight = null;
+    });
+  }
+  return shellRefreshInFlight;
 }
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await precacheIndividually(cache);
+      await refreshAppShellOnce();
       await self.skipWaiting();
     })()
   );
@@ -63,6 +131,11 @@ self.addEventListener("activate", (event) => {
       await self.clients.claim();
     })()
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== REFRESH_APP_SHELL_MESSAGE) return;
+  event.waitUntil(refreshAppShellOnce());
 });
 
 self.addEventListener("fetch", (event) => {
