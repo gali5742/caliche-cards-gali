@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -16,6 +16,7 @@ import { IndexedDbProgressRepository } from "../../lib/repositories/indexedDbPro
 import { IndexedDbReviewRepository } from "../../lib/repositories/indexedDbReviewRepository";
 import { IndexedDbSettingsRepository } from "../../lib/repositories/indexedDbSettingsRepository";
 import { StaticVocabularyRepository } from "../../lib/repositories/staticVocabularyRepository";
+import { recordPracticeExposure } from "../../lib/review/practiceExposure";
 import { isProductionAnswerCorrect } from "../../lib/review/productionAnswer";
 import {
   commitStudyReviewAnswer,
@@ -88,6 +89,7 @@ export function MobileStudyReview({
   const [submitting, setSubmitting] = useState(false);
   const [addingBatch, setAddingBatch] = useState(false);
   const [promptStartedAt, setPromptStartedAt] = useState(() => Date.now());
+  const practiceExposureRecorded = useRef(new Set<string>());
 
   const load = useCallback(async () => {
     if (!collection || !book || book < 1) {
@@ -143,6 +145,15 @@ export function MobileStudyReview({
   const nextBatchCount = session
     ? Math.min(session.newVocabularyBatchSize, remainingFreshAfterSession)
     : 0;
+
+  useEffect(() => {
+    const itemId = current?.item.id;
+    if (!isPractice || !itemId || practiceExposureRecorded.current.has(itemId)) {
+      return;
+    }
+    practiceExposureRecorded.current.add(itemId);
+    recordPracticeExposure(itemId, Date.now());
+  }, [current?.item.id, isPractice]);
 
   useEffect(() => {
     setRevealed(false);

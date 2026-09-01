@@ -1,5 +1,9 @@
 import type { TodayReviewQueueEntry } from "./todayReviewQueue";
 import { readFsrsSchedulerState } from "../srs/fsrsMapping";
+import {
+  practiceExposureMultiplier,
+  readPracticeExposureSnapshot,
+} from "./practiceExposure";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SIBLING_GAP = 3;
@@ -109,11 +113,19 @@ export function samplePracticeEntries(input: {
   if (limit === 0 || input.entries.length === 0) return [];
 
   const random = input.random ?? Math.random;
+  const exposureByItemId = readPracticeExposureSnapshot(input.now);
   const selected = input.entries
-    .map((entry) => ({
-      entry,
-      key: weightedKey(practicePriorityWeight(entry, input.now), random),
-    }))
+    .map((entry) => {
+      const fsrsWeight = practicePriorityWeight(entry, input.now);
+      const exposureMultiplier = practiceExposureMultiplier(
+        exposureByItemId[entry.item.id],
+        input.now
+      );
+      return {
+        entry,
+        key: weightedKey(fsrsWeight * exposureMultiplier, random),
+      };
+    })
     .sort((a, b) => a.key - b.key)
     .slice(0, limit)
     .map(({ entry }) => entry);
