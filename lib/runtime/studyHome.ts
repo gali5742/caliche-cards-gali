@@ -29,6 +29,7 @@ export type StudyHomeSnapshot = {
   };
   dailyExtraNewVocabulary: number;
   effectiveDailyNewVocabularyLimit: number;
+  completedFormalReviewVocabulary: number;
   queue: TodayReviewQueueSummary | null;
 };
 
@@ -56,6 +57,31 @@ export function getLatestRegisteredLesson(
     .sort(comparePosition);
 
   return positions.at(-1) ?? null;
+}
+
+async function countCompletedFormalReviewVocabulary(input: {
+  collection: ContentCollectionRef;
+  book: number;
+  latestRegisteredLesson: RegisteredLessonPosition | null;
+  vocabularyRepository: VocabularyRepository;
+  reviewRepository: ReviewRepository;
+}): Promise<number> {
+  if (!input.latestRegisteredLesson) return 0;
+
+  const registeredVocabulary = await input.vocabularyRepository.listUnlocked({
+    languageId: input.collection.languageId,
+    collectionId: input.collection.collectionId,
+    book: input.book,
+    unit: input.latestRegisteredLesson.unit,
+    lesson: input.latestRegisteredLesson.lesson,
+  });
+  const registeredVocabularyIds = new Set(
+    registeredVocabulary.map((entry) => entry.id)
+  );
+  const introducedVocabularyIds =
+    await input.reviewRepository.listIntroducedVocabularyIds();
+
+  return introducedVocabularyIds.filter((id) => registeredVocabularyIds.has(id)).length;
 }
 
 export async function initializeProgressToLatestRegisteredLesson(input: {
@@ -104,14 +130,24 @@ export async function loadStudyHomeSnapshot(input: {
     input.collection,
     input.book
   );
-  const dailyExtraNewVocabulary = input.dailyStudyRepository
-    ? await getDailyExtraNewVocabulary({
+  const [dailyExtraNewVocabulary, completedFormalReviewVocabulary] =
+    await Promise.all([
+      input.dailyStudyRepository
+        ? getDailyExtraNewVocabulary({
+            collection: input.collection,
+            book: input.book,
+            now: input.now,
+            repository: input.dailyStudyRepository,
+          })
+        : Promise.resolve(0),
+      countCompletedFormalReviewVocabulary({
         collection: input.collection,
         book: input.book,
-        now: input.now,
-        repository: input.dailyStudyRepository,
-      })
-    : 0;
+        latestRegisteredLesson,
+        vocabularyRepository: input.vocabularyRepository,
+        reviewRepository: input.reviewRepository,
+      }),
+    ]);
   const effectiveDailyNewVocabularyLimit =
     runtime.settings.dailyNewVocabularyLimit + dailyExtraNewVocabulary;
 
@@ -124,6 +160,7 @@ export async function loadStudyHomeSnapshot(input: {
       settings: runtime.settings,
       dailyExtraNewVocabulary,
       effectiveDailyNewVocabularyLimit,
+      completedFormalReviewVocabulary,
       queue: null,
     };
   }
@@ -147,6 +184,7 @@ export async function loadStudyHomeSnapshot(input: {
     settings: runtime.settings,
     dailyExtraNewVocabulary,
     effectiveDailyNewVocabularyLimit,
+    completedFormalReviewVocabulary,
     queue: queue.summary,
   };
 }
