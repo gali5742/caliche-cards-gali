@@ -42,6 +42,7 @@ export function vocabularyGenderLabel(entry: VocabularyEntry): string | null {
   if (entry.source.languageId !== "fr") return entry.grammar?.gender ?? null;
   if (entry.grammar?.gender === "feminine") return "阴性";
   if (entry.grammar?.gender === "masculine") return "阳性";
+  if (entry.grammar?.gender === "common") return "阳性 / 阴性（同形）";
   return entry.grammar?.gender ?? null;
 }
 
