@@ -17,6 +17,10 @@ function assertNonEmptyString(value: unknown, label: string): asserts value is s
   }
 }
 
+function hasFrenchCommonNounRole(partOfSpeech: string): boolean {
+  return partOfSpeech.split(" / ").includes("nom");
+}
+
 function validateVerbGrammar(value: unknown, label: string): void {
   if (!isRecord(value)) throw new Error(`${label} must be an object`);
 
@@ -125,6 +129,16 @@ function validateEntry(
     if (value.grammar.verb !== undefined) {
       validateVerbGrammar(value.grammar.verb, `entries[${index}].grammar.verb`);
     }
+  }
+
+  if (
+    lesson.languageId === "fr" &&
+    hasFrenchCommonNounRole(value.partOfSpeech) &&
+    (!isRecord(value.grammar) || value.grammar.gender === undefined)
+  ) {
+    throw new Error(
+      `entries[${index}].grammar.gender is required for French common nouns`
+    );
   }
 
   const expectedPrefix = `${lesson.languageId}:${lesson.collectionId}:`;
