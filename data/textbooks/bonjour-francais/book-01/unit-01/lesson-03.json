@@ -11,7 +11,7 @@
     {"id":"fr:bonjour-francais:b1-u1-l3-age","lemma":"âge","ipa":"/aʒ/","meaningsZh":["年龄","年纪"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
     {"id":"fr:bonjour-francais:b1-u1-l3-aller","lemma":"aller","ipa":"/a.le/","meaningsZh":["去","走","处于……的健康状况","运转","进行","进展"],"partOfSpeech":"verbe","grammar":{"verb":{"conjugationClass":"irregular","conjugations":[{"id":"present-indicative","label":"直陈式现在时","forms":[{"person":"1s","form":"je vais","ipa":"/ʒə vɛ/"},{"person":"2s","form":"tu vas","ipa":"/ty va/"},{"person":"3s","form":"il / elle va","ipa":"/il va, ɛl va/"},{"person":"1p","form":"nous allons","ipa":"/nu zalɔ̃/"},{"person":"2p","form":"vous allez","ipa":"/vu zale/"},{"person":"3p","form":"ils / elles vont","ipa":"/il vɔ̃, ɛl vɔ̃/"}]}]}}},
     {"id":"fr:bonjour-francais:b1-u1-l3-alors","lemma":"alors","ipa":"/a.lɔʁ/","meaningsZh":["那么","在这种情况下"],"partOfSpeech":"adverbe"},
-    {"id":"fr:bonjour-francais:b1-u1-l3-ami","lemma":"ami","ipa":"/a.mi/","meaningsZh":["朋友"],"partOfSpeech":"nom","grammar":{"forms":{"feminine":"amie"}}},
+    {"id":"fr:bonjour-francais:b1-u1-l3-ami","lemma":"ami","ipa":"/a.mi/","meaningsZh":["朋友"],"partOfSpeech":"nom","grammar":{"gender":"masculine","forms":{"feminine":"amie"}}},
     {"id":"fr:bonjour-francais:b1-u1-l3-an","lemma":"an","ipa":"/ɑ̃/","meaningsZh":["年","岁"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
     {"id":"fr:bonjour-francais:b1-u1-l3-au-revoir","lemma":"au revoir","ipa":"/o ʁə.vwaʁ/","meaningsZh":["再见","再会"],"partOfSpeech":"locution"},
     {"id":"fr:bonjour-francais:b1-u1-l3-avec","lemma":"avec","ipa":"/a.vɛk/","meaningsZh":["和……一起","具有","带有"],"partOfSpeech":"préposition"},
