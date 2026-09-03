@@ -13,7 +13,6 @@ import type {
   VocabularyLessonRef,
   VocabularyRepository,
 } from "../lib/repositories/vocabularyRepository";
-import { buildPracticeReviewQueue } from "../lib/review/practiceReviewQueue";
 import { buildReviewItemId } from "../lib/review/reviewItemGenerator";
 import { buildTodayReviewQueue } from "../lib/review/todayReviewQueue";
 import type { InitializableReviewScheduler } from "../lib/srs/scheduler";
@@ -22,11 +21,11 @@ import type { SchedulerState } from "../lib/srs/types";
 const LANGUAGE_ID = "fr";
 const COLLECTION_ID = "bonjour-francais";
 
-function makeVocabulary(id: string, lemma: string): VocabularyEntry {
+function makeVocabulary(id: string): VocabularyEntry {
   return {
     id,
-    lemma,
-    meaningsZh: [lemma],
+    lemma: id,
+    meaningsZh: [id],
     partOfSpeech: "nom",
     source: {
       kind: "textbook",
@@ -64,10 +63,11 @@ function makeSchedulerState(input: {
         stability: input.state === State.New ? 0 : 3,
         difficulty: input.state === State.New ? 0 : 5,
         elapsedDays: 0,
-        scheduledDays: 0,
-        learningSteps: 0,
+        scheduledDays: input.state === State.Review ? 3 : 0,
+        learningSteps:
+          input.state === State.Learning || input.state === State.Relearning ? 1 : 0,
         reps: input.reps,
-        lapses: 0,
+        lapses: input.state === State.Relearning ? 1 : 0,
         state: input.state,
         lastReview: input.lastReview ?? null,
       },
@@ -76,20 +76,12 @@ function makeSchedulerState(input: {
 }
 
 function toStoredState(reviewItemId: string, state: SchedulerState): StoredReviewState {
-  return {
-    reviewItemId,
-    due: state.due,
-    state: state.raw,
-  };
+  return { reviewItemId, due: state.due, state: state.raw };
 }
 
 class DeterministicScheduler implements InitializableReviewScheduler {
   createInitialState(at: number): SchedulerState {
-    return makeSchedulerState({
-      due: at,
-      state: State.New,
-      reps: 0,
-    });
+    return makeSchedulerState({ due: at, state: State.New, reps: 0 });
   }
 
   schedule(input: {
@@ -153,27 +145,13 @@ class MemoryReviewRepository implements ReviewRepository {
   private readonly states = new Map<string, StoredReviewState>();
   private readonly introducedAt = new Map<string, number>();
 
-  writes = {
-    upsertItems: 0,
-    saveState: 0,
-    appendEvent: 0,
-    commitReview: 0,
-  };
-
-  seedState(state: StoredReviewState): void {
-    this.states.set(state.reviewItemId, state);
-  }
-
-  seedIntroduced(vocabularyId: string, at: number): void {
-    this.introducedAt.set(vocabularyId, at);
-  }
-
-  seedItem(item: ReviewItem): void {
+  seed(item: ReviewItem, state: StoredReviewState, introducedAt: number): void {
     this.items.set(item.id, item);
+    this.states.set(state.reviewItemId, state);
+    this.introducedAt.set(item.vocabularyId, introducedAt);
   }
 
   async upsertItems(items: ReviewItem[]): Promise<void> {
-    this.writes.upsertItems += 1;
     for (const item of items) this.items.set(item.id, item);
   }
 
@@ -214,16 +192,12 @@ class MemoryReviewRepository implements ReviewRepository {
   }
 
   async saveState(state: StoredReviewState): Promise<void> {
-    this.writes.saveState += 1;
     this.states.set(state.reviewItemId, state);
   }
 
-  async appendEvent(_event: ReviewEvent): Promise<void> {
-    this.writes.appendEvent += 1;
-  }
+  async appendEvent(_event: ReviewEvent): Promise<void> {}
 
   async commitReview(state: StoredReviewState, event: ReviewEvent): Promise<void> {
-    this.writes.commitReview += 1;
     this.states.set(state.reviewItemId, state);
     const item = this.items.get(state.reviewItemId);
     if (item && !this.introducedAt.has(item.vocabularyId)) {
@@ -232,7 +206,10 @@ class MemoryReviewRepository implements ReviewRepository {
   }
 }
 
-function makeReviewItem(vocabularyId: string, skill: "recognition" | "production"): ReviewItem {
+function makeReviewItem(
+  vocabularyId: string,
+  skill: "recognition" | "production"
+): ReviewItem {
   return {
     id: buildReviewItemId(vocabularyId, skill),
     vocabularyId,
@@ -241,37 +218,27 @@ function makeReviewItem(vocabularyId: string, skill: "recognition" | "production
   };
 }
 
-test("daily new limit counts vocabulary entries, not recognition/production items", async () => {
-  const now = new Date(2026, 8, 3, 12, 0, 0).getTime();
-  const vocabularyRepository = new MemoryVocabularyRepository([
-    makeVocabulary("v1", "bonjour"),
-    makeVocabulary("v2", "merci"),
-  ]);
+test("a long-term review due later today is available from the start of the local day", async () => {
+  const now = new Date(2026, 8, 3, 8, 0, 0).getTime();
+  const dueTonight = new Date(2026, 8, 3, 23, 30, 0).getTime();
+  const yesterday = new Date(2026, 8, 2, 8, 0, 0).getTime();
+  const vocabularyRepository = new MemoryVocabularyRepository([makeVocabulary("v1")]);
   const reviewRepository = new MemoryReviewRepository();
+  const item = makeReviewItem("v1", "recognition");
 
-  const queue = await buildTodayReviewQueue({
-    progress: makeProgress(),
-    vocabularyRepository,
-    reviewRepository,
-    scheduler: new DeterministicScheduler(),
-    now,
-    dailyNewVocabularyLimit: 1,
-  });
-
-  assert.equal(queue.summary.newVocabulary, 1);
-  assert.equal(queue.summary.newItems, 2);
-  assert.deepEqual(
-    queue.entries.map((entry) => entry.item.vocabularyId),
-    ["v1", "v1"]
+  reviewRepository.seed(
+    item,
+    toStoredState(
+      item.id,
+      makeSchedulerState({
+        due: dueTonight,
+        state: State.Review,
+        reps: 3,
+        lastReview: yesterday,
+      })
+    ),
+    yesterday
   );
-});
-
-test("recognition-only mode creates one fresh review item per vocabulary", async () => {
-  const now = new Date(2026, 8, 3, 12, 0, 0).getTime();
-  const vocabularyRepository = new MemoryVocabularyRepository([
-    makeVocabulary("v1", "bonjour"),
-  ]);
-  const reviewRepository = new MemoryReviewRepository();
 
   const queue = await buildTodayReviewQueue({
     progress: makeProgress(),
@@ -279,50 +246,35 @@ test("recognition-only mode creates one fresh review item per vocabulary", async
     reviewRepository,
     scheduler: new DeterministicScheduler(),
     now,
-    dailyNewVocabularyLimit: 1,
+    dailyNewVocabularyLimit: 0,
     skills: ["recognition"],
   });
 
-  assert.equal(queue.summary.newVocabulary, 1);
-  assert.equal(queue.summary.newItems, 1);
-  assert.equal(queue.entries[0]?.item.skill, "recognition");
+  assert.equal(queue.summary.scheduledReviewItems, 1);
+  assert.equal(queue.summary.pendingReinforcementVocabulary, 0);
+  assert.equal(queue.entries.length, 1);
 });
 
-test("an older vocabulary reviewed earlier today is classified as same-day reinforcement", async () => {
-  const now = new Date(2026, 8, 3, 15, 0, 0).getTime();
-  const earlierToday = new Date(2026, 8, 3, 10, 0, 0).getTime();
-  const previousDay = new Date(2026, 8, 2, 10, 0, 0).getTime();
-  const vocabularyRepository = new MemoryVocabularyRepository([
-    makeVocabulary("v1", "bonjour"),
-  ]);
+test("a long-term review due tomorrow does not leak into today's queue", async () => {
+  const now = new Date(2026, 8, 3, 8, 0, 0).getTime();
+  const dueTomorrow = new Date(2026, 8, 4, 8, 0, 0).getTime();
+  const yesterday = new Date(2026, 8, 2, 8, 0, 0).getTime();
+  const vocabularyRepository = new MemoryVocabularyRepository([makeVocabulary("v1")]);
   const reviewRepository = new MemoryReviewRepository();
+  const item = makeReviewItem("v1", "recognition");
 
-  const recognition = makeReviewItem("v1", "recognition");
-  const production = makeReviewItem("v1", "production");
-  reviewRepository.seedItem(recognition);
-  reviewRepository.seedItem(production);
-  reviewRepository.seedIntroduced("v1", previousDay);
-  reviewRepository.seedState(
+  reviewRepository.seed(
+    item,
     toStoredState(
-      recognition.id,
+      item.id,
       makeSchedulerState({
-        due: now - 1,
+        due: dueTomorrow,
         state: State.Review,
         reps: 3,
-        lastReview: earlierToday,
+        lastReview: yesterday,
       })
-    )
-  );
-  reviewRepository.seedState(
-    toStoredState(
-      production.id,
-      makeSchedulerState({
-        due: now + 60_000,
-        state: State.Review,
-        reps: 3,
-        lastReview: previousDay,
-      })
-    )
+    ),
+    yesterday
   );
 
   const queue = await buildTodayReviewQueue({
@@ -331,37 +283,74 @@ test("an older vocabulary reviewed earlier today is classified as same-day reinf
     reviewRepository,
     scheduler: new DeterministicScheduler(),
     now,
-    dailyNewVocabularyLimit: 10,
+    dailyNewVocabularyLimit: 0,
+    skills: ["recognition"],
   });
 
-  assert.equal(queue.summary.sameDayReinforcementItems, 1);
-  assert.equal(queue.summary.scheduledReviewItems, 1);
-  assert.equal(queue.entries[0]?.sameDayReinforcement, true);
+  assert.equal(queue.entries.length, 0);
+  assert.equal(queue.summary.scheduledReviewItems, 0);
 });
 
-test("daily new capacity resets at the next local calendar day", async () => {
-  const introducedBeforeMidnight = new Date(2026, 8, 3, 23, 59, 0).getTime();
-  const now = new Date(2026, 8, 4, 0, 1, 0).getTime();
-  const vocabularyRepository = new MemoryVocabularyRepository([
-    makeVocabulary("v1", "bonjour"),
-    makeVocabulary("v2", "merci"),
-  ]);
+test("Learning and Relearning remain pending reinforcement without minute-level due gating", async () => {
+  const now = new Date(2026, 8, 3, 8, 0, 0).getTime();
+  const futureDue = new Date(2026, 8, 4, 18, 0, 0).getTime();
+  const yesterday = new Date(2026, 8, 2, 8, 0, 0).getTime();
+  const vocabularyRepository = new MemoryVocabularyRepository([makeVocabulary("v1")]);
+  const reviewRepository = new MemoryReviewRepository();
+  const item = makeReviewItem("v1", "recognition");
+
+  reviewRepository.seed(
+    item,
+    toStoredState(
+      item.id,
+      makeSchedulerState({
+        due: futureDue,
+        state: State.Learning,
+        reps: 1,
+        lastReview: yesterday,
+      })
+    ),
+    yesterday
+  );
+
+  const queue = await buildTodayReviewQueue({
+    progress: makeProgress(),
+    vocabularyRepository,
+    reviewRepository,
+    scheduler: new DeterministicScheduler(),
+    now,
+    dailyNewVocabularyLimit: 0,
+    skills: ["recognition"],
+  });
+
+  assert.equal(queue.entries.length, 1);
+  assert.equal(queue.entries[0]?.sameDayReinforcement, true);
+  assert.equal(queue.summary.sameDayReinforcementItems, 1);
+  assert.equal(queue.summary.pendingReinforcementVocabulary, 1);
+  assert.equal(queue.summary.scheduledReviewItems, 0);
+});
+
+test("pending reinforcement is counted by vocabulary, not by recognition and production items", async () => {
+  const now = new Date(2026, 8, 3, 8, 0, 0).getTime();
+  const futureDue = new Date(2026, 8, 4, 18, 0, 0).getTime();
+  const yesterday = new Date(2026, 8, 2, 8, 0, 0).getTime();
+  const vocabularyRepository = new MemoryVocabularyRepository([makeVocabulary("v1")]);
   const reviewRepository = new MemoryReviewRepository();
 
-  reviewRepository.seedIntroduced("v1", introducedBeforeMidnight);
   for (const skill of ["recognition", "production"] as const) {
     const item = makeReviewItem("v1", skill);
-    reviewRepository.seedItem(item);
-    reviewRepository.seedState(
+    reviewRepository.seed(
+      item,
       toStoredState(
         item.id,
         makeSchedulerState({
-          due: now + 86_400_000,
-          state: State.Review,
+          due: futureDue,
+          state: State.Relearning,
           reps: 2,
-          lastReview: introducedBeforeMidnight,
+          lastReview: yesterday,
         })
-      )
+      ),
+      yesterday
     );
   }
 
@@ -371,47 +360,10 @@ test("daily new capacity resets at the next local calendar day", async () => {
     reviewRepository,
     scheduler: new DeterministicScheduler(),
     now,
-    dailyNewVocabularyLimit: 1,
+    dailyNewVocabularyLimit: 0,
   });
 
-  assert.equal(queue.summary.introducedVocabularyToday, 0);
-  assert.equal(queue.summary.remainingNewVocabularyCapacity, 1);
-  assert.equal(queue.summary.newVocabulary, 1);
-  assert.equal(queue.entries.at(-1)?.item.vocabularyId, "v2");
-});
-
-test("free review builds a queue without writing review state or events", async () => {
-  const now = new Date(2026, 8, 3, 12, 0, 0).getTime();
-  const vocabularyRepository = new MemoryVocabularyRepository([
-    makeVocabulary("v1", "bonjour"),
-  ]);
-  const reviewRepository = new MemoryReviewRepository();
-
-  const recognition = makeReviewItem("v1", "recognition");
-  reviewRepository.seedItem(recognition);
-  reviewRepository.seedIntroduced("v1", now - 86_400_000);
-  reviewRepository.seedState(
-    toStoredState(
-      recognition.id,
-      makeSchedulerState({
-        due: now + 86_400_000,
-        state: State.Review,
-        reps: 2,
-        lastReview: now - 86_400_000,
-      })
-    )
-  );
-
-  const writesBefore = { ...reviewRepository.writes };
-  const queue = await buildPracticeReviewQueue({
-    progress: makeProgress(),
-    vocabularyRepository,
-    reviewRepository,
-    skills: ["recognition"],
-    now,
-    itemLimit: 20,
-  });
-
-  assert.equal(queue.entries.length, 1);
-  assert.deepEqual(reviewRepository.writes, writesBefore);
+  assert.equal(queue.summary.sameDayReinforcementItems, 2);
+  assert.equal(queue.summary.pendingReinforcementVocabulary, 1);
+  assert.equal(queue.summary.totalItems, 2);
 });

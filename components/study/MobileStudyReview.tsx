@@ -45,12 +45,11 @@ const RATINGS: Array<{
 
 function queueKindLabel(
   kind: "due" | "continuation" | "new",
-  sameDayReinforcement: boolean
+  reinforcement: boolean
 ): string {
-  if (sameDayReinforcement) return "同日巩固";
-  if (kind === "due") return "到期复习";
-  if (kind === "continuation") return "继续巩固";
-  return "新词";
+  if (reinforcement) return "巩固";
+  if (kind === "new") return "新词";
+  return "复习";
 }
 
 export function MobileStudyReview({
