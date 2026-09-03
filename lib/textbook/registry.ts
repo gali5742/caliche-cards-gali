@@ -14,6 +14,7 @@ import type {
   ContentCollectionRef,
 } from "../../domain/content/types";
 import type { TextbookLessonData } from "../../domain/textbook/types";
+import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import { validateLessonData } from "./validateLessonData";
 
 const COLLECTIONS: ContentCollection[] = [
@@ -31,9 +32,13 @@ const COLLECTIONS: ContentCollection[] = [
   },
 ];
 
+function normalizeLemma(value: string): string {
+  return value.normalize("NFKC").trim().toLocaleLowerCase();
+}
+
 function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
   const lessonKeys = new Set<string>();
-  const vocabularyIds = new Set<string>();
+  const vocabularyById = new Map<string, VocabularyEntry>();
 
   for (const lesson of lessons) {
     const lessonKey = `${lesson.languageId}:${lesson.collectionId}:b${lesson.book}:u${lesson.unit}:l${lesson.lesson}`;
@@ -43,10 +48,31 @@ function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
     lessonKeys.add(lessonKey);
 
     for (const entry of lesson.entries) {
-      if (vocabularyIds.has(entry.id)) {
+      if (vocabularyById.has(entry.id)) {
         throw new Error(`duplicate registered vocabulary id: ${entry.id}`);
       }
-      vocabularyIds.add(entry.id);
+      vocabularyById.set(entry.id, entry);
+    }
+  }
+
+  for (const entry of vocabularyById.values()) {
+    if (!entry.reviewOf) continue;
+
+    const canonical = vocabularyById.get(entry.reviewOf);
+    if (!canonical) {
+      throw new Error(
+        `reviewOf target does not exist: ${entry.id} -> ${entry.reviewOf}`
+      );
+    }
+    if (canonical.reviewOf) {
+      throw new Error(
+        `reviewOf must point directly to a canonical vocabulary item: ${entry.id}`
+      );
+    }
+    if (normalizeLemma(canonical.lemma) !== normalizeLemma(entry.lemma)) {
+      throw new Error(
+        `reviewOf must reference the same lemma: ${entry.id} -> ${entry.reviewOf}`
+      );
     }
   }
 
