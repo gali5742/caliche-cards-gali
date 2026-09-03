@@ -6,6 +6,7 @@ import type {
   StoredReviewState,
 } from "../repositories/reviewRepository";
 import type { VocabularyRepository } from "../repositories/vocabularyRepository";
+import { readFsrsSchedulerState } from "../srs/fsrsMapping";
 import { isNewFsrsSchedulerState } from "../srs/fsrsState";
 import type { InitializableReviewScheduler } from "../srs/scheduler";
 import { ensureReviewItems } from "./reviewPersistenceService";
@@ -21,6 +22,7 @@ export type TodayReviewQueueEntry = {
   vocabulary: VocabularyEntry;
   state: StoredReviewState;
   kind: TodayReviewQueueKind;
+  sameDayReinforcement: boolean;
 };
 
 export type TodayReviewQueueSummary = {
@@ -91,6 +93,21 @@ function isNewState(state: StoredReviewState): boolean {
   });
 }
 
+function wasReviewedDuringDay(
+  state: StoredReviewState,
+  dayStart: number,
+  dayEnd: number
+): boolean {
+  const card = readFsrsSchedulerState({
+    due: state.due,
+    raw: state.state,
+  });
+  const lastReview = card.last_review?.getTime();
+  return (
+    lastReview !== undefined && lastReview >= dayStart && lastReview < dayEnd
+  );
+}
+
 function skillOrder(skill: ReviewSkill): number {
   return skill === "recognition" ? 0 : 1;
 }
@@ -99,9 +116,10 @@ function makeEntry(
   item: ReviewItem,
   vocabulary: VocabularyEntry,
   state: StoredReviewState,
-  kind: TodayReviewQueueKind
+  kind: TodayReviewQueueKind,
+  sameDayReinforcement = false
 ): TodayReviewQueueEntry {
-  return { item, vocabulary, state, kind };
+  return { item, vocabulary, state, kind, sameDayReinforcement };
 }
 
 export async function buildTodayReviewQueue(
@@ -168,13 +186,21 @@ export async function buildTodayReviewQueue(
     const entry = vocabularyById.get(item.vocabularyId);
     if (!entry) continue;
 
+    const sameDayReinforcement =
+      introducedToday.has(item.vocabularyId) ||
+      wasReviewedDuringDay(state, dayStart, dayEnd);
+
     if (!isNewState(state)) {
-      dueEntries.push(makeEntry(item, entry, state, "due"));
+      dueEntries.push(
+        makeEntry(item, entry, state, "due", sameDayReinforcement)
+      );
       continue;
     }
 
     if (introduced.has(item.vocabularyId)) {
-      continuationEntries.push(makeEntry(item, entry, state, "continuation"));
+      continuationEntries.push(
+        makeEntry(item, entry, state, "continuation", sameDayReinforcement)
+      );
       continue;
     }
 
@@ -227,8 +253,8 @@ export async function buildTodayReviewQueue(
   );
 
   const reinforcementCandidates = [...dueEntries, ...continuationEntries];
-  const sameDayReinforcementItems = reinforcementCandidates.filter((entry) =>
-    introducedToday.has(entry.item.vocabularyId)
+  const sameDayReinforcementItems = reinforcementCandidates.filter(
+    (entry) => entry.sameDayReinforcement
   ).length;
   const scheduledReviewItems =
     reinforcementCandidates.length - sameDayReinforcementItems;

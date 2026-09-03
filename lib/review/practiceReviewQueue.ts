@@ -99,6 +99,7 @@ export async function buildPracticeReviewQueue(input: {
       vocabulary: entry,
       state,
       kind: "continuation",
+      sameDayReinforcement: false,
     });
   }
 

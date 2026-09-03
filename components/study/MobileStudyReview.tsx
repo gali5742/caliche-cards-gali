@@ -43,7 +43,11 @@ const RATINGS: Array<{
   { rating: "easy", label: "很熟" },
 ];
 
-function queueKindLabel(kind: "due" | "continuation" | "new"): string {
+function queueKindLabel(
+  kind: "due" | "continuation" | "new",
+  sameDayReinforcement: boolean
+): string {
+  if (sameDayReinforcement) return "同日巩固";
   if (kind === "due") return "到期复习";
   if (kind === "continuation") return "继续巩固";
   return "新词";
@@ -362,7 +366,12 @@ export function MobileStudyReview({
           </div>
           <div className="mt-4 flex items-center justify-between gap-3 text-sm">
             <span className="rounded-full bg-white/6 px-3 py-1.5 text-slate-300">
-              {isPractice ? "自由复习" : queueKindLabel(current.kind)}
+              {isPractice
+                ? "自由复习"
+                : queueKindLabel(
+                    current.kind,
+                    current.sameDayReinforcement
+                  )}
             </span>
             <span className="text-slate-500">
               {isRecognition ? "看词想义" : "看义写词"}
