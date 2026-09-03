@@ -16,6 +16,7 @@ const FRENCH_PART_OF_SPEECH: Record<string, string> = {
   "locution adverbiale": "副词短语",
   "locution prépositive": "介词短语",
   "locution verbale": "动词短语",
+  "structure grammaticale": "语法结构",
 };
 
 const FRENCH_FORM_LABELS: Record<string, string> = {
