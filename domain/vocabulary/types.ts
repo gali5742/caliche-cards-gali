@@ -45,4 +45,10 @@ export type VocabularyEntry = {
   source: VocabularySourceRef;
   tags?: string[];
   notes?: string;
+  /**
+   * Points a repeated textbook-table entry at the canonical vocabulary item
+   * that owns review state. The repeated entry remains visible in its lesson,
+   * but must not generate a second FSRS item.
+   */
+  reviewOf?: string;
 };

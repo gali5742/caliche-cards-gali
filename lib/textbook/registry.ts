@@ -4,6 +4,7 @@ import lessonB1U1L3 from "../../data/textbooks/bonjour-francais/book-01/unit-01/
 import lessonB1U1L4 from "../../data/textbooks/bonjour-francais/book-01/unit-01/lesson-04.json";
 import lessonB1U2L5 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-05.json";
 import lessonB1U2L6 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-06.json";
+import lessonB1U2L7 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-07.json";
 import expansionB1U1L1 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-01.json";
 import expansionB1U1L2 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-02.json";
 import expansionB1U1L3 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-03.json";
@@ -14,6 +15,7 @@ import type {
   ContentCollectionRef,
 } from "../../domain/content/types";
 import type { TextbookLessonData } from "../../domain/textbook/types";
+import type { VocabularyEntry } from "../../domain/vocabulary/types";
 import { validateLessonData } from "./validateLessonData";
 
 const COLLECTIONS: ContentCollection[] = [
@@ -31,9 +33,15 @@ const COLLECTIONS: ContentCollection[] = [
   },
 ];
 
+function normalizeLemma(value: string): string {
+  return value.normalize("NFKC").trim().toLocaleLowerCase();
+}
+
 function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
   const lessonKeys = new Set<string>();
-  const vocabularyIds = new Set<string>();
+  const vocabularyById = new Map<string, VocabularyEntry>();
+  const vocabularyOrder = new Map<string, number>();
+  let order = 0;
 
   for (const lesson of lessons) {
     const lessonKey = `${lesson.languageId}:${lesson.collectionId}:b${lesson.book}:u${lesson.unit}:l${lesson.lesson}`;
@@ -43,10 +51,40 @@ function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
     lessonKeys.add(lessonKey);
 
     for (const entry of lesson.entries) {
-      if (vocabularyIds.has(entry.id)) {
+      if (vocabularyById.has(entry.id)) {
         throw new Error(`duplicate registered vocabulary id: ${entry.id}`);
       }
-      vocabularyIds.add(entry.id);
+      vocabularyById.set(entry.id, entry);
+      vocabularyOrder.set(entry.id, order++);
+    }
+  }
+
+  for (const entry of vocabularyById.values()) {
+    if (!entry.reviewOf) continue;
+
+    const canonical = vocabularyById.get(entry.reviewOf);
+    if (!canonical) {
+      throw new Error(
+        `reviewOf target does not exist: ${entry.id} -> ${entry.reviewOf}`
+      );
+    }
+    if (canonical.reviewOf) {
+      throw new Error(
+        `reviewOf must point directly to a canonical vocabulary item: ${entry.id}`
+      );
+    }
+    if ((vocabularyOrder.get(canonical.id) ?? Infinity) >= (vocabularyOrder.get(entry.id) ?? -1)) {
+      throw new Error(`reviewOf must reference an earlier registered vocabulary item: ${entry.id}`);
+    }
+    if (normalizeLemma(canonical.lemma) !== normalizeLemma(entry.lemma)) {
+      throw new Error(
+        `reviewOf must reference the same lemma: ${entry.id} -> ${entry.reviewOf}`
+      );
+    }
+    if (canonical.partOfSpeech !== entry.partOfSpeech) {
+      throw new Error(
+        `reviewOf must reference the same part of speech: ${entry.id} -> ${entry.reviewOf}`
+      );
     }
   }
 
@@ -60,6 +98,7 @@ const LESSONS: TextbookLessonData[] = validateRegistry([
   validateLessonData(lessonB1U1L4),
   validateLessonData(lessonB1U2L5),
   validateLessonData(lessonB1U2L6),
+  validateLessonData(lessonB1U2L7),
   validateLessonData(expansionB1U1L1),
   validateLessonData(expansionB1U1L2),
   validateLessonData(expansionB1U1L3),

@@ -148,6 +148,18 @@ function validateEntry(
     );
   }
 
+  if (value.reviewOf !== undefined) {
+    assertNonEmptyString(value.reviewOf, `entries[${index}].reviewOf`);
+    if (!value.reviewOf.startsWith(expectedPrefix)) {
+      throw new Error(
+        `entries[${index}].reviewOf must stay inside the same language and collection`
+      );
+    }
+    if (value.reviewOf === value.id) {
+      throw new Error(`entries[${index}].reviewOf cannot reference itself`);
+    }
+  }
+
   const source = {
     kind: "textbook" as const,
     languageId: lesson.languageId,

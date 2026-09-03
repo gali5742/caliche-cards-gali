@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 3,
+  "languageId": "fr",
+  "collectionId": "bonjour-francais",
+  "book": 1,
+  "unit": 2,
+  "lesson": 7,
+  "coverage": "complete",
+  "entries": [
+    {"id":"fr:bonjour-francais:b1-u2-l7-bien","lemma":"bien","ipa":"/bjɛ̃/","meaningsZh":["许多","很","非常","完全","十分"],"partOfSpeech":"adverbe","reviewOf":"fr:bonjour-francais:b1-u1-l3-bien"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-bon","lemma":"bon","ipa":"/bɔ̃/","meaningsZh":["好；好吧（在感叹语中可表示赞成、不满、惊奇等）"],"partOfSpeech":"adjectif","reviewOf":"fr:bonjour-francais:b1-u1-l3-bon"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-boutique","lemma":"boutique","ipa":"/bu.tik/","meaningsZh":["店铺","商店"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-cher","lemma":"cher","ipa":"/ʃɛʁ/","meaningsZh":["昂贵的","贵的"],"partOfSpeech":"adjectif","grammar":{"forms":{"feminine":"chère","plural":"chers / chères"}}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-combien","lemma":"combien","ipa":"/kɔ̃.bjɛ̃/","meaningsZh":["多少"],"partOfSpeech":"adverbe interrogatif"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-couter","lemma":"coûter","ipa":"/ku.te/","meaningsZh":["价值（多少钱）","花费","花钱"],"partOfSpeech":"verbe","grammar":{"verb":{"conjugationClass":"regular-er","conjugations":[{"id":"present-indicative","label":"直陈式现在时","forms":[{"person":"1s","form":"je coûte","ipa":"/ʒə kut/"},{"person":"2s","form":"tu coûtes","ipa":"/ty kut/"},{"person":"3s","form":"il / elle coûte","ipa":"/il kut, ɛl kut/"},{"person":"1p","form":"nous coûtons","ipa":"/nu ku.tɔ̃/"},{"person":"2p","form":"vous coûtez","ipa":"/vu ku.te/"},{"person":"3p","form":"ils / elles coûtent","ipa":"/il kut, ɛl kut/"}]}]}}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-et","lemma":"et","ipa":"/e/","meaningsZh":["和","以及（表示数量相加）"],"partOfSpeech":"conjonction","reviewOf":"fr:bonjour-francais:b1-u1-l1-et"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-euro","lemma":"euro","ipa":"/ø.ʁo/","meaningsZh":["欧元"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-faire","lemma":"faire","ipa":"/fɛʁ/","meaningsZh":["（价钱、尺寸等）为……","（容量等）为……"],"partOfSpeech":"verbe","grammar":{"verb":{"conjugationClass":"irregular","conjugations":[{"id":"present-indicative","label":"直陈式现在时","forms":[{"person":"1s","form":"je fais","ipa":"/ʒə fɛ/"},{"person":"2s","form":"tu fais","ipa":"/ty fɛ/"},{"person":"3s","form":"il / elle fait","ipa":"/il fɛ, ɛl fɛ/"},{"person":"1p","form":"nous faisons","ipa":"/nu fə.zɔ̃/"},{"person":"2p","form":"vous faites","ipa":"/vu fɛt/"},{"person":"3p","form":"ils / elles font","ipa":"/il fɔ̃, ɛl fɔ̃/"}]}]}}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-gris","lemma":"gris","ipa":"/ɡʁi/","meaningsZh":["灰色的"],"partOfSpeech":"adjectif","grammar":{"forms":{"feminine":"grise","plural":"gris / grises"}}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-hum","lemma":"hum","ipa":"/œm/","meaningsZh":["嗯（表示怀疑、不耐烦或持保留意见）"],"partOfSpeech":"interjection"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-joli","lemma":"joli","ipa":"/ʒɔ.li/","meaningsZh":["漂亮的","好看的"],"partOfSpeech":"adjectif","grammar":{"forms":{"feminine":"jolie","plural":"jolis / jolies"}}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-pour","lemma":"pour","ipa":"/puʁ/","meaningsZh":["对于","适合于（表示对象、用途）"],"partOfSpeech":"préposition"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-prix","lemma":"prix","ipa":"/pʁi/","meaningsZh":["价格","价钱"],"partOfSpeech":"nom","grammar":{"gender":"masculine","forms":{"plural":"prix"}}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-pull","lemma":"pull","ipa":"/pyl/","meaningsZh":["羊毛套衫","毛衣（pull-over 的缩写）"],"partOfSpeech":"nom","grammar":{"gender":"masculine"},"reviewOf":"fr:bonjour-francais:b1-u2-l6-pull"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-quantite","lemma":"quantité","ipa":"/kɑ̃.ti.te/","meaningsZh":["量","数量"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-shopping","lemma":"shopping","ipa":"/ʃɔ.piŋ/","meaningsZh":["在商店购物","购物"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-taille","lemma":"taille","ipa":"/taj/","meaningsZh":["（成衣的）尺码","号码"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-tres","lemma":"très","ipa":"/tʁɛ/","meaningsZh":["很","极","非常"],"partOfSpeech":"adverbe"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-trouver","lemma":"trouver","ipa":"/tʁu.ve/","meaningsZh":["感到","觉得","认为","以为"],"partOfSpeech":"verbe","reviewOf":"fr:bonjour-francais:b1-u2-l5-trouver"},
+    {"id":"fr:bonjour-francais:b1-u2-l7-type","lemma":"type","ipa":"/tip/","meaningsZh":["类型","型","种"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l7-vendeur","lemma":"vendeur","ipa":"/vɑ̃.dœʁ/","meaningsZh":["售货员","营业员"],"partOfSpeech":"nom","grammar":{"gender":"masculine","forms":{"feminine":"vendeuse"}},"tags":["profession"]}
+  ]
+}
