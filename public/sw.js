@@ -1,9 +1,8 @@
 // Bump this when changing caching behavior to ensure old caches are dropped.
-const CACHE_NAME = "language-study-v11";
+const CACHE_NAME = "language-study-v12";
 const REFRESH_APP_SHELL_MESSAGE = "REFRESH_APP_SHELL";
 
 const APP_SHELL_ROUTES = [
-  "/",
   "/study",
   "/study/review",
   "/study/progress",
@@ -15,7 +14,6 @@ const APP_SHELL_ROUTES = [
 
 const STATIC_PRECACHE_URLS = [
   "/manifest.webmanifest",
-  "/sql-wasm.wasm",
   "/icon",
   "/apple-icon",
 ];
@@ -29,7 +27,7 @@ function shellFallbackPath(pathname) {
   if (pathname.startsWith("/study/vocabulary")) return "/study/vocabulary";
   if (pathname.startsWith("/study/progress")) return "/study/progress";
   if (pathname.startsWith("/study/review")) return "/study/review";
-  return pathname.startsWith("/study") ? "/study" : "/";
+  return "/study";
 }
 
 function extractNextStaticAssets(html, baseUrl) {

@@ -3,10 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async headers() {
     return [
-      {
-        source: "/sql-wasm.wasm",
-        headers: [{ key: "Content-Type", value: "application/wasm" }],
-      },
       // Safari can aggressively cache favicons/touch icons.
       // These headers nudge it to revalidate instead of sticking to stale assets.
       {
