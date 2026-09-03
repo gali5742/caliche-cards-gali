@@ -23,6 +23,7 @@
     {"id":"fr:bonjour-francais:b1-u1-l4-dakar","lemma":"Dakar","ipa":"/da.kaʁ/","meaningsZh":["达喀尔（塞内加尔首都）"],"partOfSpeech":"nom propre","tags":["place"]},
     {"id":"fr:bonjour-francais:b1-u1-l4-danse","lemma":"danse","ipa":"/dɑ̃s/","meaningsZh":["舞蹈"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
     {"id":"fr:bonjour-francais:b1-u1-l4-de","lemma":"de","ipa":"/də/","meaningsZh":["从","来自","……的"],"partOfSpeech":"préposition"},
+    {"id":"fr:bonjour-francais:b1-u1-l4-espagnol","lemma":"espagnol","ipa":"/ɛs.pa.ɲɔl/","meaningsZh":["西班牙语"],"partOfSpeech":"adjectif / nom","reviewOf":"fr:bonjour-francais:b1-u1-l2-espagnol","tags":["language"]},
     {"id":"fr:bonjour-francais:b1-u1-l4-europe","lemma":"Europe","ipa":"/ø.ʁɔp/","meaningsZh":["欧洲"],"partOfSpeech":"nom propre","grammar":{"gender":"feminine"},"tags":["place"]},
     {"id":"fr:bonjour-francais:b1-u1-l4-football","lemma":"football","ipa":"/fut.bol/","meaningsZh":["足球"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
     {"id":"fr:bonjour-francais:b1-u1-l4-frere","lemma":"frère","ipa":"/fʁɛʁ/","meaningsZh":["兄弟"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
