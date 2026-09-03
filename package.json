@@ -10,8 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:compile": "node -e \"require('fs').rmSync('.test-dist',{recursive:true,force:true})\" && tsc -p tsconfig.test.json",
     "test": "npm run test:compile && node --test .test-dist/tests/*.test.js",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build",
-    "postinstall": "node scripts/copy-sql-wasm.mjs"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
