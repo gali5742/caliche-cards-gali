@@ -5,6 +5,7 @@ import lessonB1U1L4 from "../../data/textbooks/bonjour-francais/book-01/unit-01/
 import lessonB1U2L5 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-05.json";
 import lessonB1U2L6 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-06.json";
 import lessonB1U2L7 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-07.json";
+import lessonB1U2L8 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-08.json";
 import expansionB1U1L1 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-01.json";
 import expansionB1U1L2 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-02.json";
 import expansionB1U1L3 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-03.json";
@@ -73,8 +74,13 @@ function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
         `reviewOf must point directly to a canonical vocabulary item: ${entry.id}`
       );
     }
-    if ((vocabularyOrder.get(canonical.id) ?? Infinity) >= (vocabularyOrder.get(entry.id) ?? -1)) {
-      throw new Error(`reviewOf must reference an earlier registered vocabulary item: ${entry.id}`);
+    if (
+      (vocabularyOrder.get(canonical.id) ?? Infinity) >=
+      (vocabularyOrder.get(entry.id) ?? -1)
+    ) {
+      throw new Error(
+        `reviewOf must reference an earlier registered vocabulary item: ${entry.id}`
+      );
     }
     if (normalizeLemma(canonical.lemma) !== normalizeLemma(entry.lemma)) {
       throw new Error(
@@ -99,6 +105,7 @@ const LESSONS: TextbookLessonData[] = validateRegistry([
   validateLessonData(lessonB1U2L5),
   validateLessonData(lessonB1U2L6),
   validateLessonData(lessonB1U2L7),
+  validateLessonData(lessonB1U2L8),
   validateLessonData(expansionB1U1L1),
   validateLessonData(expansionB1U1L2),
   validateLessonData(expansionB1U1L3),
