@@ -39,6 +39,8 @@ function normalizeLemma(value: string): string {
 function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
   const lessonKeys = new Set<string>();
   const vocabularyById = new Map<string, VocabularyEntry>();
+  const vocabularyOrder = new Map<string, number>();
+  let order = 0;
 
   for (const lesson of lessons) {
     const lessonKey = `${lesson.languageId}:${lesson.collectionId}:b${lesson.book}:u${lesson.unit}:l${lesson.lesson}`;
@@ -52,6 +54,7 @@ function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
         throw new Error(`duplicate registered vocabulary id: ${entry.id}`);
       }
       vocabularyById.set(entry.id, entry);
+      vocabularyOrder.set(entry.id, order++);
     }
   }
 
@@ -69,9 +72,17 @@ function validateRegistry(lessons: TextbookLessonData[]): TextbookLessonData[] {
         `reviewOf must point directly to a canonical vocabulary item: ${entry.id}`
       );
     }
+    if ((vocabularyOrder.get(canonical.id) ?? Infinity) >= (vocabularyOrder.get(entry.id) ?? -1)) {
+      throw new Error(`reviewOf must reference an earlier registered vocabulary item: ${entry.id}`);
+    }
     if (normalizeLemma(canonical.lemma) !== normalizeLemma(entry.lemma)) {
       throw new Error(
         `reviewOf must reference the same lemma: ${entry.id} -> ${entry.reviewOf}`
+      );
+    }
+    if (canonical.partOfSpeech !== entry.partOfSpeech) {
+      throw new Error(
+        `reviewOf must reference the same part of speech: ${entry.id} -> ${entry.reviewOf}`
       );
     }
   }
