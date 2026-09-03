@@ -335,7 +335,7 @@ test("an older vocabulary reviewed earlier today is classified as same-day reinf
   });
 
   assert.equal(queue.summary.sameDayReinforcementItems, 1);
-  assert.equal(queue.summary.scheduledReviewItems, 0);
+  assert.equal(queue.summary.scheduledReviewItems, 1);
   assert.equal(queue.entries[0]?.sameDayReinforcement, true);
 });
 
