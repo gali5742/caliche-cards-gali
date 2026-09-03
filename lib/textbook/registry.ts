@@ -6,11 +6,16 @@ import lessonB1U2L5 from "../../data/textbooks/bonjour-francais/book-01/unit-02/
 import lessonB1U2L6 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-06.json";
 import lessonB1U2L7 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-07.json";
 import lessonB1U2L8 from "../../data/textbooks/bonjour-francais/book-01/unit-02/lesson-08.json";
+import lessonB1U3L9 from "../../data/textbooks/bonjour-francais/book-01/unit-03/lesson-09.json";
 import expansionB1U1L1 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-01.json";
 import expansionB1U1L2 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-02.json";
 import expansionB1U1L3 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-03.json";
 import expansionB1U1L4 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-01/lesson-04.json";
 import expansionB1U2L5 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-02/lesson-05.json";
+import expansionB1U2L6 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-02/lesson-06.json";
+import expansionB1U2L7 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-02/lesson-07.json";
+import expansionB1U2L8 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-02/lesson-08.json";
+import expansionB1U3L9 from "../../data/textbooks/bonjour-francais-theme-expansion/book-01/unit-03/lesson-09.json";
 import type {
   ContentCollection,
   ContentCollectionRef,
@@ -106,11 +111,16 @@ const LESSONS: TextbookLessonData[] = validateRegistry([
   validateLessonData(lessonB1U2L6),
   validateLessonData(lessonB1U2L7),
   validateLessonData(lessonB1U2L8),
+  validateLessonData(lessonB1U3L9),
   validateLessonData(expansionB1U1L1),
   validateLessonData(expansionB1U1L2),
   validateLessonData(expansionB1U1L3),
   validateLessonData(expansionB1U1L4),
   validateLessonData(expansionB1U2L5),
+  validateLessonData(expansionB1U2L6),
+  validateLessonData(expansionB1U2L7),
+  validateLessonData(expansionB1U2L8),
+  validateLessonData(expansionB1U3L9),
 ]);
 
 function matchesCollection(
