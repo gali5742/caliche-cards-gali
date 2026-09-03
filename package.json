@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run build",
+    "test:compile": "node -e \"require('fs').rmSync('.test-dist',{recursive:true,force:true})\" && tsc -p tsconfig.test.json",
+    "test": "npm run test:compile && node --test .test-dist/tests/*.test.js",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "postinstall": "node scripts/copy-sql-wasm.mjs"
   },
   "dependencies": {
