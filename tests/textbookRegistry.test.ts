@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { VocabularyEntry } from "../domain/vocabulary/types";
 import { StaticVocabularyRepository } from "../lib/repositories/staticVocabularyRepository";
 import { listRegisteredLessons } from "../lib/textbook/registry";
 import { vocabularyPartOfSpeechLabel } from "../lib/vocabulary/presentation";
@@ -65,7 +66,7 @@ const LESSON_7_LEMMAS = [
   "vendeur",
 ].sort();
 
-const LESSON_7_REVIEW_REUSE = new Map([
+const LESSON_7_REVIEW_REUSE = new Map<string, string>([
   ["bien", "fr:bonjour-francais:b1-u1-l3-bien"],
   ["bon", "fr:bonjour-francais:b1-u1-l3-bon"],
   ["et", "fr:bonjour-francais:b1-u1-l1-et"],
@@ -143,9 +144,11 @@ test("Lesson 7 repeated textbook terms point to their earlier canonical review i
   assert.ok(lesson);
 
   for (const [lemma, canonicalId] of LESSON_7_REVIEW_REUSE) {
-    const entry = lesson.entries.find((candidate) => candidate.lemma === lemma);
-    assert.ok(entry, `missing repeated lesson entry: ${lemma}`);
-    assert.equal(entry.reviewOf, canonicalId);
+    const repeatedEntry: VocabularyEntry | undefined = lesson.entries.find(
+      (candidate) => candidate.lemma === lemma
+    );
+    assert.ok(repeatedEntry, `missing repeated lesson entry: ${lemma}`);
+    assert.equal(repeatedEntry.reviewOf, canonicalId);
   }
 
   assert.equal(
