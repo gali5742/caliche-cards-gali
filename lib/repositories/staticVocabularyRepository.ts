@@ -38,6 +38,10 @@ function sameCollection(a: VocabularyLessonRef, b: VocabularyLessonRef): boolean
   );
 }
 
+function ownsReviewState(entry: VocabularyEntry): boolean {
+  return entry.reviewOf === undefined;
+}
+
 export class StaticVocabularyRepository implements VocabularyRepository {
   private readonly entries: VocabularyEntry[];
 
@@ -59,7 +63,12 @@ export class StaticVocabularyRepository implements VocabularyRepository {
   async listUnlocked(ref: VocabularyLessonRef): Promise<VocabularyEntry[]> {
     return this.entries.filter((entry) => {
       const entryRef = getLessonRef(entry);
-      return entryRef !== null && sameCollection(entryRef, ref) && compareLesson(entryRef, ref) <= 0;
+      return (
+        ownsReviewState(entry) &&
+        entryRef !== null &&
+        sameCollection(entryRef, ref) &&
+        compareLesson(entryRef, ref) <= 0
+      );
     });
   }
 
@@ -67,11 +76,13 @@ export class StaticVocabularyRepository implements VocabularyRepository {
     const normalized = query.trim().toLocaleLowerCase();
     if (!normalized) return [];
 
-    return this.entries.filter((entry) =>
-      vocabularyEntrySearchTerms(entry)
-        .join("\n")
-        .toLocaleLowerCase()
-        .includes(normalized)
+    return this.entries.filter(
+      (entry) =>
+        ownsReviewState(entry) &&
+        vocabularyEntrySearchTerms(entry)
+          .join("\n")
+          .toLocaleLowerCase()
+          .includes(normalized)
     );
   }
 }
