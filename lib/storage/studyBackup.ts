@@ -1,3 +1,4 @@
+import { readFsrsSchedulerState } from "../srs/fsrsMapping";
 import {
   getLanguageStudyDb,
   STUDY_DB_VERSION,
@@ -61,6 +62,19 @@ function isNonEmptyString(value: unknown): value is string {
 
 function assertArray(value: unknown, label: string): asserts value is unknown[] {
   if (!Array.isArray(value)) throw new Error(`${label} 不是有效的数组`);
+}
+
+function assertUniqueKeys(
+  values: readonly string[],
+  label: string
+): void {
+  const seen = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) {
+      throw new Error(`${label} 中存在重复记录`);
+    }
+    seen.add(value);
+  }
 }
 
 function validateReviewItems(value: unknown): asserts value is StoredReviewItem[] {
@@ -179,6 +193,41 @@ function validateDailyStudyPlans(value: unknown): asserts value is StoredDailySt
   }
 }
 
+function validateStudyBackupIntegrity(data: StudyBackupData): void {
+  assertUniqueKeys(data.reviewItems.map((row) => row.id), "reviewItems");
+  assertUniqueKeys(
+    data.reviewStates.map((row) => row.reviewItemId),
+    "reviewStates"
+  );
+  assertUniqueKeys(data.reviewEvents.map((row) => row.id), "reviewEvents");
+  assertUniqueKeys(data.progress.map((row) => row.id), "progress");
+  assertUniqueKeys(data.settings.map((row) => row.id), "settings");
+  assertUniqueKeys(data.dailyStudyPlans.map((row) => row.id), "dailyStudyPlans");
+
+  const reviewItemIds = new Set(data.reviewItems.map((row) => row.id));
+
+  for (const row of data.reviewStates) {
+    if (!reviewItemIds.has(row.reviewItemId)) {
+      throw new Error("reviewStates 引用了不存在的 reviewItem");
+    }
+
+    try {
+      readFsrsSchedulerState({
+        due: row.due,
+        raw: row.state,
+      });
+    } catch {
+      throw new Error("reviewStates 中存在无效或不兼容的 FSRS 状态");
+    }
+  }
+
+  for (const row of data.reviewEvents) {
+    if (!reviewItemIds.has(row.reviewItemId)) {
+      throw new Error("reviewEvents 引用了不存在的 reviewItem");
+    }
+  }
+}
+
 export async function createStudyBackup(
   db: LanguageStudyDb = getLanguageStudyDb()
 ): Promise<StudyBackup> {
@@ -212,8 +261,11 @@ export function parseStudyBackup(value: unknown): StudyBackup {
   if (!isRecord(value)) throw new Error("不是有效的学习数据备份");
   if (value.format !== STUDY_BACKUP_FORMAT) throw new Error("无法识别这个备份文件");
   if (value.version !== STUDY_BACKUP_VERSION) throw new Error("暂不支持这个备份版本");
-  if (!isFiniteNumber(value.dbVersion) || !isFiniteNumber(value.exportedAt)) {
+  if (!isPositiveInteger(value.dbVersion) || !isFiniteNumber(value.exportedAt)) {
     throw new Error("备份文件信息不完整");
+  }
+  if (value.dbVersion > STUDY_DB_VERSION) {
+    throw new Error("这个备份来自更新版本的学习数据库，当前版本无法安全恢复");
   }
   if (!isRecord(value.data)) throw new Error("备份文件缺少学习数据");
 
@@ -223,6 +275,9 @@ export function parseStudyBackup(value: unknown): StudyBackup {
   validateProgress(value.data.progress);
   validateSettings(value.data.settings);
   validateDailyStudyPlans(value.data.dailyStudyPlans);
+
+  const data = value.data as StudyBackupData;
+  validateStudyBackupIntegrity(data);
 
   return value as StudyBackup;
 }
