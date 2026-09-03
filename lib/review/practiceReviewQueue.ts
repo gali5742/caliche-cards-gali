@@ -116,6 +116,7 @@ export async function buildPracticeReviewQueue(input: {
       continuationItems: entries.length,
       scheduledReviewItems: 0,
       sameDayReinforcementItems: 0,
+      pendingReinforcementVocabulary: 0,
       newItems: 0,
       newVocabulary: 0,
       introducedVocabularyToday: 0,
