@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - "phase*"
+      - "test/*"
   pull_request:
     branches:
       - master
@@ -35,6 +36,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
