@@ -1,3 +1,5 @@
+import { State } from "ts-fsrs";
+
 import type { ReviewItem, ReviewSkill } from "../../domain/review/types";
 import type { LearningProgress } from "../../domain/textbook/types";
 import type { VocabularyEntry } from "../../domain/vocabulary/types";
@@ -30,6 +32,7 @@ export type TodayReviewQueueSummary = {
   continuationItems: number;
   scheduledReviewItems: number;
   sameDayReinforcementItems: number;
+  pendingReinforcementVocabulary: number;
   newItems: number;
   newVocabulary: number;
   introducedVocabularyToday: number;
@@ -108,6 +111,30 @@ function wasReviewedDuringDay(
   );
 }
 
+function isShortTermState(state: StoredReviewState): boolean {
+  const card = readFsrsSchedulerState({
+    due: state.due,
+    raw: state.state,
+  });
+  return card.state === State.Learning || card.state === State.Relearning;
+}
+
+function isAvailableThisSession(
+  state: StoredReviewState,
+  dayEnd: number
+): boolean {
+  const card = readFsrsSchedulerState({
+    due: state.due,
+    raw: state.state,
+  });
+
+  if (card.state === State.Review) {
+    return state.due < dayEnd;
+  }
+
+  return card.state === State.Learning || card.state === State.Relearning;
+}
+
 function skillOrder(skill: ReviewSkill): number {
   return skill === "recognition" ? 0 : 1;
 }
@@ -142,22 +169,14 @@ export async function buildTodayReviewQueue(
     : {};
   const generatedItems = generateReviewItems(vocabulary, generationOptions);
 
-  await ensureReviewItems(
+  const states = await ensureReviewItems(
     generatedItems,
     input.reviewRepository,
     input.scheduler,
     input.now
   );
 
-  const generatedItemIds = new Set(generatedItems.map((item) => item.id));
-  const dueStates = (await input.reviewRepository.listDueStates(input.now)).filter(
-    (state) => generatedItemIds.has(state.reviewItemId)
-  );
-  const persistedItems = await input.reviewRepository.getItems(
-    dueStates.map((state) => state.reviewItemId)
-  );
-
-  const itemById = new Map(persistedItems.map((item) => [item.id, item]));
+  const itemById = new Map(generatedItems.map((item) => [item.id, item]));
   const vocabularyById = new Map(vocabulary.map((entry) => [entry.id, entry]));
   const vocabularyOrder = new Map(
     vocabulary.map((entry, index) => [entry.id, index])
@@ -180,33 +199,40 @@ export async function buildTodayReviewQueue(
   const continuationEntries: TodayReviewQueueEntry[] = [];
   const freshNewStates = new Map<string, StoredReviewState[]>();
 
-  for (const state of dueStates) {
+  for (const state of states) {
     const item = itemById.get(state.reviewItemId);
     if (!item?.enabled) continue;
     const entry = vocabularyById.get(item.vocabularyId);
     if (!entry) continue;
 
-    const sameDayReinforcement =
+    if (isNewState(state)) {
+      if (introduced.has(item.vocabularyId)) {
+        continuationEntries.push(
+          makeEntry(
+            item,
+            entry,
+            state,
+            "continuation",
+            introducedToday.has(item.vocabularyId)
+          )
+        );
+        continue;
+      }
+
+      const freshStates = freshNewStates.get(item.vocabularyId) ?? [];
+      freshStates.push(state);
+      freshNewStates.set(item.vocabularyId, freshStates);
+      continue;
+    }
+
+    if (!isAvailableThisSession(state, dayEnd)) continue;
+
+    const reinforcement =
+      isShortTermState(state) ||
       introducedToday.has(item.vocabularyId) ||
       wasReviewedDuringDay(state, dayStart, dayEnd);
 
-    if (!isNewState(state)) {
-      dueEntries.push(
-        makeEntry(item, entry, state, "due", sameDayReinforcement)
-      );
-      continue;
-    }
-
-    if (introduced.has(item.vocabularyId)) {
-      continuationEntries.push(
-        makeEntry(item, entry, state, "continuation", sameDayReinforcement)
-      );
-      continue;
-    }
-
-    const states = freshNewStates.get(item.vocabularyId) ?? [];
-    states.push(state);
-    freshNewStates.set(item.vocabularyId, states);
+    dueEntries.push(makeEntry(item, entry, state, "due", reinforcement));
   }
 
   const remainingNewVocabularyCapacity = Math.max(
@@ -253,9 +279,13 @@ export async function buildTodayReviewQueue(
   );
 
   const reinforcementCandidates = [...dueEntries, ...continuationEntries];
-  const sameDayReinforcementItems = reinforcementCandidates.filter(
+  const reinforcementEntries = reinforcementCandidates.filter(
     (entry) => entry.sameDayReinforcement
-  ).length;
+  );
+  const sameDayReinforcementItems = reinforcementEntries.length;
+  const pendingReinforcementVocabulary = new Set(
+    reinforcementEntries.map((entry) => entry.item.vocabularyId)
+  ).size;
   const scheduledReviewItems =
     reinforcementCandidates.length - sameDayReinforcementItems;
   const dailyNewVocabularyTarget =
@@ -269,6 +299,7 @@ export async function buildTodayReviewQueue(
       continuationItems: continuationEntries.length,
       scheduledReviewItems,
       sameDayReinforcementItems,
+      pendingReinforcementVocabulary,
       newItems: newEntries.length,
       newVocabulary: selectedFreshVocabularyIds.size,
       introducedVocabularyToday: introducedToday.size,
