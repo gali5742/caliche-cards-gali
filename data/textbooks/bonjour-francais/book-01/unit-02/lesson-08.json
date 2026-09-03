@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 3,
+  "languageId": "fr",
+  "collectionId": "bonjour-francais",
+  "book": 1,
+  "unit": 2,
+  "lesson": 8,
+  "coverage": "complete",
+  "entries": [
+    {"id":"fr:bonjour-francais:b1-u2-l8-artiste","lemma":"artiste","ipa":"/aʁ.tist/","meaningsZh":["艺术家"],"partOfSpeech":"nom","grammar":{"gender":"common"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-coin","lemma":"coin","ipa":"/kwɛ̃/","meaningsZh":["角","角落","街角处"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-ecrivain","lemma":"écrivain","ipa":"/e.kʁi.vɛ̃/","meaningsZh":["作家"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-entre","lemma":"entre","ipa":"/ɑ̃tʁ/","meaningsZh":["在……之间（与 et 连用，表示时间或空间）"],"partOfSpeech":"préposition","reviewOf":"fr:bonjour-francais:b1-u2-l5-entre"},
+    {"id":"fr:bonjour-francais:b1-u2-l8-film","lemma":"film","ipa":"/film/","meaningsZh":["电影","影片"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-mome","lemma":"môme","ipa":"/mom/","meaningsZh":["小孩","小家伙"],"partOfSpeech":"nom","grammar":{"gender":"common"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-musicien","lemma":"musicien","ipa":"/my.zi.sjɛ̃/","meaningsZh":["音乐家","作曲家","演奏家"],"partOfSpeech":"nom","grammar":{"gender":"masculine","forms":{"feminine":"musicienne"}},"tags":["profession"]},
+    {"id":"fr:bonjour-francais:b1-u2-l8-orange","lemma":"orange","ipa":"/ɔ.ʁɑ̃ʒ/","meaningsZh":["柑","橘","橙"],"partOfSpeech":"nom","grammar":{"gender":"feminine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-peintre","lemma":"peintre","ipa":"/pɛ̃tʁ/","meaningsZh":["画家","画师"],"partOfSpeech":"nom","grammar":{"gender":"common"},"tags":["profession"]},
+    {"id":"fr:bonjour-francais:b1-u2-l8-poeme","lemma":"poème","ipa":"/pɔ.ɛm/","meaningsZh":["诗歌"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-poete","lemma":"poète","ipa":"/pɔ.ɛt/","meaningsZh":["诗人"],"partOfSpeech":"nom","grammar":{"gender":"masculine"},"tags":["profession"]},
+    {"id":"fr:bonjour-francais:b1-u2-l8-sculpteur","lemma":"sculpteur","ipa":"/skyl.tœʁ/","meaningsZh":["雕刻家","雕塑家"],"partOfSpeech":"nom","grammar":{"gender":"masculine","forms":{"feminine":"sculptrice"}},"tags":["profession"]},
+    {"id":"fr:bonjour-francais:b1-u2-l8-tableau-peinture","lemma":"tableau","ipa":"/ta.blo/","meaningsZh":["画","绘画作品"],"partOfSpeech":"nom","grammar":{"gender":"masculine"}},
+    {"id":"fr:bonjour-francais:b1-u2-l8-tableau-table","lemma":"tableau","ipa":"/ta.blo/","meaningsZh":["表","表格"],"partOfSpeech":"nom","grammar":{"gender":"masculine"},"reviewOf":"fr:bonjour-francais:b1-u2-l8-tableau-peinture"}
+  ]
+}
