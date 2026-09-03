@@ -23,7 +23,7 @@ jobs:
           cache: npm
 
       - name: Apply non-breaking audit fixes to lockfile
-        run: npm audit fix --package-lock-only --ignore-scripts --no-audit --no-fund
+        run: npm audit fix --package-lock-only --ignore-scripts --no-audit --no-fund || true
 
       - name: Commit lockfile
         run: |
