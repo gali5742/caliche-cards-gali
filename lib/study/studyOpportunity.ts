@@ -40,6 +40,16 @@ function removeSessionTimestamp(key: string): void {
   }
 }
 
+function isSameLocalCalendarDay(a: number, b: number): boolean {
+  const first = new Date(a);
+  const second = new Date(b);
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
+}
+
 export function shouldStartNewStudyOpportunity(
   hiddenAt: number | null,
   visibleAt: number,
@@ -61,7 +71,13 @@ export function getStudyOpportunityStartedAt(now: number): number {
   if (typeof window === "undefined") return now;
 
   const stored = readSessionTimestamp(OPPORTUNITY_STARTED_AT_KEY);
-  if (stored !== null && stored <= now) return stored;
+  if (
+    stored !== null &&
+    stored <= now &&
+    isSameLocalCalendarDay(stored, now)
+  ) {
+    return stored;
+  }
 
   writeSessionTimestamp(OPPORTUNITY_STARTED_AT_KEY, now);
   return now;
@@ -76,11 +92,16 @@ export function resumeStudyOpportunity(at: number): {
   startedAt: number;
   startedNew: boolean;
 } {
+  const previousStartedAt = readSessionTimestamp(OPPORTUNITY_STARTED_AT_KEY);
   const current = getStudyOpportunityStartedAt(at);
   const hiddenAt = readSessionTimestamp(OPPORTUNITY_HIDDEN_AT_KEY);
   removeSessionTimestamp(OPPORTUNITY_HIDDEN_AT_KEY);
 
-  if (!shouldStartNewStudyOpportunity(hiddenAt, at)) {
+  const dayRolled =
+    previousStartedAt !== null && previousStartedAt !== current;
+  const backgroundGapElapsed = shouldStartNewStudyOpportunity(hiddenAt, at);
+
+  if (!dayRolled && !backgroundGapElapsed) {
     return { startedAt: current, startedNew: false };
   }
 
