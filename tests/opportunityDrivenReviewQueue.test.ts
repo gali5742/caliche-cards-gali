@@ -330,6 +330,114 @@ test("Learning and Relearning remain pending reinforcement without minute-level 
   assert.equal(queue.summary.scheduledReviewItems, 0);
 });
 
+test("a short-term card reviewed during the current opportunity waits for the next opportunity", async () => {
+  const opportunityStartedAt = new Date(2026, 8, 3, 12, 0, 0).getTime();
+  const reviewedAt = new Date(2026, 8, 3, 12, 10, 0).getTime();
+  const now = new Date(2026, 8, 3, 12, 30, 0).getTime();
+  const nextOpportunity = new Date(2026, 8, 3, 13, 0, 0).getTime();
+  const futureDue = new Date(2026, 8, 3, 18, 0, 0).getTime();
+  const yesterday = new Date(2026, 8, 2, 8, 0, 0).getTime();
+  const vocabularyRepository = new MemoryVocabularyRepository([makeVocabulary("v1")]);
+  const reviewRepository = new MemoryReviewRepository();
+  const item = makeReviewItem("v1", "recognition");
+
+  reviewRepository.seed(
+    item,
+    toStoredState(
+      item.id,
+      makeSchedulerState({
+        due: futureDue,
+        state: State.Learning,
+        reps: 2,
+        lastReview: reviewedAt,
+      })
+    ),
+    yesterday
+  );
+
+  const currentQueue = await buildTodayReviewQueue({
+    progress: makeProgress(),
+    vocabularyRepository,
+    reviewRepository,
+    scheduler: new DeterministicScheduler(),
+    now,
+    opportunityStartedAt,
+    dailyNewVocabularyLimit: 0,
+    skills: ["recognition"],
+  });
+
+  assert.equal(currentQueue.entries.length, 0);
+  assert.equal(currentQueue.summary.pendingReinforcementVocabulary, 0);
+
+  const nextQueue = await buildTodayReviewQueue({
+    progress: makeProgress(),
+    vocabularyRepository,
+    reviewRepository,
+    scheduler: new DeterministicScheduler(),
+    now: nextOpportunity,
+    opportunityStartedAt: nextOpportunity,
+    dailyNewVocabularyLimit: 0,
+    skills: ["recognition"],
+  });
+
+  assert.equal(nextQueue.entries.length, 1);
+  assert.equal(nextQueue.entries[0]?.sameDayReinforcement, true);
+  assert.equal(nextQueue.summary.pendingReinforcementVocabulary, 1);
+});
+
+test("a Review card rescheduled during the current opportunity cannot re-enter until the next opportunity", async () => {
+  const opportunityStartedAt = new Date(2026, 8, 3, 12, 0, 0).getTime();
+  const reviewedAt = new Date(2026, 8, 3, 12, 10, 0).getTime();
+  const dueAgainToday = new Date(2026, 8, 3, 12, 20, 0).getTime();
+  const now = new Date(2026, 8, 3, 12, 30, 0).getTime();
+  const nextOpportunity = new Date(2026, 8, 3, 13, 0, 0).getTime();
+  const yesterday = new Date(2026, 8, 2, 8, 0, 0).getTime();
+  const vocabularyRepository = new MemoryVocabularyRepository([makeVocabulary("v1")]);
+  const reviewRepository = new MemoryReviewRepository();
+  const item = makeReviewItem("v1", "recognition");
+
+  reviewRepository.seed(
+    item,
+    toStoredState(
+      item.id,
+      makeSchedulerState({
+        due: dueAgainToday,
+        state: State.Review,
+        reps: 4,
+        lastReview: reviewedAt,
+      })
+    ),
+    yesterday
+  );
+
+  const currentQueue = await buildTodayReviewQueue({
+    progress: makeProgress(),
+    vocabularyRepository,
+    reviewRepository,
+    scheduler: new DeterministicScheduler(),
+    now,
+    opportunityStartedAt,
+    dailyNewVocabularyLimit: 0,
+    skills: ["recognition"],
+  });
+
+  assert.equal(currentQueue.entries.length, 0);
+
+  const nextQueue = await buildTodayReviewQueue({
+    progress: makeProgress(),
+    vocabularyRepository,
+    reviewRepository,
+    scheduler: new DeterministicScheduler(),
+    now: nextOpportunity,
+    opportunityStartedAt: nextOpportunity,
+    dailyNewVocabularyLimit: 0,
+    skills: ["recognition"],
+  });
+
+  assert.equal(nextQueue.entries.length, 1);
+  assert.equal(nextQueue.entries[0]?.sameDayReinforcement, true);
+});
+
 test("pending reinforcement is counted by vocabulary, not by recognition and production items", async () => {
   const now = new Date(2026, 8, 3, 8, 0, 0).getTime();
   const futureDue = new Date(2026, 8, 4, 18, 0, 0).getTime();
