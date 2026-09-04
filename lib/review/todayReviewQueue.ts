@@ -53,6 +53,7 @@ export type BuildTodayReviewQueueInput = {
   reviewRepository: ReviewRepository;
   scheduler: InitializableReviewScheduler;
   now: number;
+  opportunityStartedAt?: number;
   dailyNewVocabularyLimit: number;
   skills?: readonly ReviewSkill[];
 };
@@ -89,6 +90,17 @@ function normalizeDailyNewLimit(limit: number): number {
   return Math.floor(limit);
 }
 
+function normalizeOpportunityStartedAt(
+  opportunityStartedAt: number | undefined,
+  now: number
+): number {
+  if (opportunityStartedAt === undefined) return now;
+  if (!Number.isFinite(opportunityStartedAt)) {
+    throw new Error("opportunityStartedAt must be a finite timestamp");
+  }
+  return Math.min(opportunityStartedAt, now);
+}
+
 function isNewState(state: StoredReviewState): boolean {
   return isNewFsrsSchedulerState({
     due: state.due,
@@ -96,19 +108,31 @@ function isNewState(state: StoredReviewState): boolean {
   });
 }
 
+function lastReviewTimestamp(state: StoredReviewState): number | undefined {
+  const card = readFsrsSchedulerState({
+    due: state.due,
+    raw: state.state,
+  });
+  return card.last_review?.getTime();
+}
+
 function wasReviewedDuringDay(
   state: StoredReviewState,
   dayStart: number,
   dayEnd: number
 ): boolean {
-  const card = readFsrsSchedulerState({
-    due: state.due,
-    raw: state.state,
-  });
-  const lastReview = card.last_review?.getTime();
+  const lastReview = lastReviewTimestamp(state);
   return (
     lastReview !== undefined && lastReview >= dayStart && lastReview < dayEnd
   );
+}
+
+function wasReviewedDuringOpportunity(
+  state: StoredReviewState,
+  opportunityStartedAt: number
+): boolean {
+  const lastReview = lastReviewTimestamp(state);
+  return lastReview !== undefined && lastReview >= opportunityStartedAt;
 }
 
 function isShortTermState(state: StoredReviewState): boolean {
@@ -119,10 +143,15 @@ function isShortTermState(state: StoredReviewState): boolean {
   return card.state === State.Learning || card.state === State.Relearning;
 }
 
-function isAvailableThisSession(
+function isAvailableThisOpportunity(
   state: StoredReviewState,
-  dayEnd: number
+  dayEnd: number,
+  opportunityStartedAt: number
 ): boolean {
+  if (wasReviewedDuringOpportunity(state, opportunityStartedAt)) {
+    return false;
+  }
+
   const card = readFsrsSchedulerState({
     due: state.due,
     raw: state.state,
@@ -154,6 +183,10 @@ export async function buildTodayReviewQueue(
 ): Promise<TodayReviewQueue> {
   const dailyNewVocabularyLimit = normalizeDailyNewLimit(
     input.dailyNewVocabularyLimit
+  );
+  const opportunityStartedAt = normalizeOpportunityStartedAt(
+    input.opportunityStartedAt,
+    input.now
   );
   const lessonRef = {
     languageId: input.progress.languageId,
@@ -225,7 +258,9 @@ export async function buildTodayReviewQueue(
       continue;
     }
 
-    if (!isAvailableThisSession(state, dayEnd)) continue;
+    if (!isAvailableThisOpportunity(state, dayEnd, opportunityStartedAt)) {
+      continue;
+    }
 
     const reinforcement =
       isShortTermState(state) ||
