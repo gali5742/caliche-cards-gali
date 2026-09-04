@@ -35,11 +35,15 @@ export function StudyOpportunityBoundary() {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", markHidden);
+    window.addEventListener("focus", resume);
     window.addEventListener("pagehide", markHidden);
     window.addEventListener("pageshow", resume);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", markHidden);
+      window.removeEventListener("focus", resume);
       window.removeEventListener("pagehide", markHidden);
       window.removeEventListener("pageshow", resume);
     };
