@@ -19,6 +19,7 @@ import {
 import { FsrsScheduler } from "../srs/fsrsAdapter";
 import type { FsrsSchedulerConfig } from "../srs/fsrsTypes";
 import { getDailyExtraNewVocabulary } from "../study/dailyNewVocabularyPlan";
+import { getStudyOpportunityStartedAt } from "../study/studyOpportunity";
 import { loadStudyRuntimeConfig } from "./studyRuntimeConfig";
 
 export type StudyReviewSessionMode = "scheduled" | "practice";
@@ -77,6 +78,7 @@ export async function loadStudyReviewSession(
     reviewRepository: input.reviewRepository,
     scheduler,
     now: input.now,
+    opportunityStartedAt: getStudyOpportunityStartedAt(input.now),
     dailyNewVocabularyLimit: effectiveDailyNewVocabularyLimit,
     skills: runtime.reviewSkills,
   });

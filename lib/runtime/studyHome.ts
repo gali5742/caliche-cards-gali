@@ -8,6 +8,7 @@ import type { VocabularyRepository } from "../repositories/vocabularyRepository"
 import { buildTodayReviewQueue, type TodayReviewQueueSummary } from "../review/todayReviewQueue";
 import { FsrsScheduler } from "../srs/fsrsAdapter";
 import { getDailyExtraNewVocabulary } from "../study/dailyNewVocabularyPlan";
+import { getStudyOpportunityStartedAt } from "../study/studyOpportunity";
 import { saveLearningProgress } from "../textbook/progressService";
 import { listRegisteredLessons } from "../textbook/registry";
 import { loadStudyRuntimeConfig } from "./studyRuntimeConfig";
@@ -172,6 +173,7 @@ export async function loadStudyHomeSnapshot(input: {
     reviewRepository: input.reviewRepository,
     scheduler,
     now: input.now,
+    opportunityStartedAt: getStudyOpportunityStartedAt(input.now),
     dailyNewVocabularyLimit: effectiveDailyNewVocabularyLimit,
     skills: runtime.reviewSkills,
   });
