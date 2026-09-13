@@ -7,6 +7,8 @@ import {
 } from "../storage/studyDb";
 import type { ReviewRepository, StoredReviewState } from "./reviewRepository";
 
+import { advanceStudyCalendar, localDay } from "../study/studyCalendar";
+
 function stripItemMetadata(item: StoredReviewItem): ReviewItem {
   return {
     id: item.id,
@@ -21,6 +23,7 @@ function stripStateMetadata(state: StoredReviewStateRow): StoredReviewState {
     reviewItemId: state.reviewItemId,
     due: state.due,
     state: state.state,
+    pauseBaseline: state.pauseBaseline ?? 0,
   };
 }
 
@@ -33,6 +36,17 @@ function earliestIntroducedAt(items: readonly StoredReviewItem[]): number | unde
 
 export class IndexedDbReviewRepository implements ReviewRepository {
   constructor(private readonly db: LanguageStudyDb = getLanguageStudyDb()) {}
+
+  async prepareStudyCalendar(at: number): Promise<number> {
+    return this.db.transaction("rw", this.db.studyCalendar, async () => {
+      const current = await this.db.studyCalendar.get("study") ?? {
+        id: "study" as const, day: localDay(at), active: false, pausedDays: 0,
+      };
+      const next = advanceStudyCalendar(current, at);
+      await this.db.studyCalendar.put(next);
+      return next.pausedDays;
+    });
+  }
 
   async upsertItems(items: ReviewItem[]): Promise<void> {
     if (items.length === 0) return;
@@ -128,7 +142,10 @@ export class IndexedDbReviewRepository implements ReviewRepository {
   }
 
   async saveState(state: StoredReviewState): Promise<void> {
-    await this.db.reviewStates.put({ ...state, updatedAt: Date.now() });
+    await this.db.transaction("rw", this.db.reviewStates, this.db.studyCalendar, async () => {
+      const calendar = await this.db.studyCalendar.get("study");
+      await this.db.reviewStates.put({ ...state, pauseBaseline: calendar?.pausedDays ?? 0, updatedAt: Date.now() });
+    });
   }
 
   async appendEvent(event: ReviewEvent): Promise<void> {
@@ -142,6 +159,7 @@ export class IndexedDbReviewRepository implements ReviewRepository {
       this.db.reviewItems,
       this.db.reviewStates,
       this.db.reviewEvents,
+      this.db.studyCalendar,
       async () => {
         const reviewedItem = await this.db.reviewItems.get(event.reviewItemId);
         if (!reviewedItem) {
@@ -164,7 +182,13 @@ export class IndexedDbReviewRepository implements ReviewRepository {
             updatedAt: now,
           }))
         );
-        await this.db.reviewStates.put({ ...state, updatedAt: now });
+        const pausedDays = await this.prepareStudyCalendar(event.reviewedAt);
+        const calendar = (await this.db.studyCalendar.get("study"))!;
+        if (localDay(event.reviewedAt) < calendar.day) {
+          throw new Error("Review timestamp precedes the current study day");
+        }
+        await this.db.studyCalendar.put({ ...calendar, active: true });
+        await this.db.reviewStates.put({ ...state, pauseBaseline: pausedDays, updatedAt: now });
         await this.db.reviewEvents.add({ ...event, createdAt: now });
       }
     );

@@ -4,9 +4,11 @@ export type StoredReviewState = {
   reviewItemId: string;
   due: number;
   state: unknown;
+  pauseBaseline?: number;
 };
 
 export interface ReviewRepository {
+  prepareStudyCalendar?(at: number): Promise<number>;
   upsertItems(items: ReviewItem[]): Promise<void>;
   getItem(id: string): Promise<ReviewItem | null>;
   getItems(ids: readonly string[]): Promise<ReviewItem[]>;

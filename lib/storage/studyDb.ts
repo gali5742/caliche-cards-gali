@@ -5,8 +5,10 @@ import type { DailyStudyPlan } from "../../domain/study/dailyStudy";
 import type { LearningProgress } from "../../domain/textbook/types";
 import type { StoredReviewState } from "../repositories/reviewRepository";
 
+import { localDay, type StudyCalendar } from "../study/studyCalendar";
+
 export const STUDY_DB_NAME = "language-study";
-export const STUDY_DB_VERSION = 2;
+export const STUDY_DB_VERSION = 3;
 
 export type StoredReviewItem = ReviewItem & {
   updatedAt: number;
@@ -38,6 +40,7 @@ export type StoredDailyStudyPlan = DailyStudyPlan & {
 };
 
 export class LanguageStudyDb extends Dexie {
+  studyCalendar!: Table<StudyCalendar, string>;
   reviewItems!: Table<StoredReviewItem, string>;
   reviewStates!: Table<StoredReviewStateRow, string>;
   reviewEvents!: Table<StoredReviewEvent, string>;
@@ -56,8 +59,17 @@ export class LanguageStudyDb extends Dexie {
       settings: "id",
     });
 
-    this.version(STUDY_DB_VERSION).stores({
+    this.version(2).stores({
       dailyStudyPlans: "id, [languageId+collectionId+book+localDate]",
+    });
+
+    this.version(3).stores({ studyCalendar: "id" }).upgrade(async (tx) => {
+      const latest = await tx.table("reviewEvents").orderBy("reviewedAt").last();
+      await tx.table("studyCalendar").put({
+        id: "study", day: localDay(latest?.reviewedAt ?? Date.now()),
+        active: Boolean(latest), pausedDays: 0,
+      });
+      await tx.table("reviewStates").toCollection().modify({ pauseBaseline: 0 });
     });
   }
 }
