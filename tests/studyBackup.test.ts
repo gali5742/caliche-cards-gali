@@ -67,6 +67,7 @@ function makeValidBackup(): StudyBackup {
       progress: [],
       settings: [],
       dailyStudyPlans: [],
+      studyCalendar: [],
     },
   };
 }

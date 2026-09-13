@@ -1,3 +1,4 @@
+import { localDay, type StudyCalendar } from "../study/studyCalendar";
 import { readFsrsSchedulerState } from "../srs/fsrsMapping";
 import {
   getLanguageStudyDb,
@@ -15,6 +16,7 @@ export const STUDY_BACKUP_FORMAT = "language-study-backup" as const;
 export const STUDY_BACKUP_VERSION = 1 as const;
 
 export type StudyBackupData = {
+  studyCalendar?: StudyCalendar[];
   reviewItems: StoredReviewItem[];
   reviewStates: StoredReviewStateRow[];
   reviewEvents: StoredReviewEvent[];
@@ -101,6 +103,7 @@ function validateReviewStates(value: unknown): asserts value is StoredReviewStat
       !isRecord(row) ||
       !isNonEmptyString(row.reviewItemId) ||
       !isFiniteNumber(row.due) ||
+      (row.pauseBaseline !== undefined && !isNonNegativeInteger(row.pauseBaseline)) ||
       !isFiniteNumber(row.updatedAt) ||
       !("state" in row)
     ) {
@@ -204,6 +207,19 @@ function validateStudyBackupIntegrity(data: StudyBackupData): void {
   assertUniqueKeys(data.settings.map((row) => row.id), "settings");
   assertUniqueKeys(data.dailyStudyPlans.map((row) => row.id), "dailyStudyPlans");
 
+  const calendars = data.studyCalendar ?? [];
+  if (calendars.length > 1) throw new Error("Invalid study calendar");
+  for (const row of calendars) {
+    if (!isRecord(row) || row.id !== "study" || !Number.isInteger(row.day) ||
+        typeof row.active !== "boolean" || !isNonNegativeInteger(row.pausedDays)) {
+      throw new Error("Invalid study calendar");
+    }
+  }
+  for (const row of data.reviewStates) {
+    if ((row.pauseBaseline ?? 0) > (calendars[0]?.pausedDays ?? 0)) {
+      throw new Error("Invalid pause baseline");
+    }
+  }
   const reviewItemIds = new Set(data.reviewItems.map((row) => row.id));
 
   for (const row of data.reviewStates) {
@@ -231,30 +247,34 @@ function validateStudyBackupIntegrity(data: StudyBackupData): void {
 export async function createStudyBackup(
   db: LanguageStudyDb = getLanguageStudyDb()
 ): Promise<StudyBackup> {
-  const [reviewItems, reviewStates, reviewEvents, progress, settings, dailyStudyPlans] =
-    await Promise.all([
-      db.reviewItems.toArray(),
-      db.reviewStates.toArray(),
-      db.reviewEvents.toArray(),
-      db.progress.toArray(),
-      db.settings.toArray(),
-      db.dailyStudyPlans.toArray(),
-    ]);
+  return db.transaction("r", db.tables, async () => {
+    const [reviewItems, reviewStates, reviewEvents, progress, settings, dailyStudyPlans, studyCalendar] =
+      await Promise.all([
+        db.reviewItems.toArray(),
+        db.reviewStates.toArray(),
+        db.reviewEvents.toArray(),
+        db.progress.toArray(),
+        db.settings.toArray(),
+        db.dailyStudyPlans.toArray(),
+        db.studyCalendar.toArray(),
+      ]);
 
-  return {
-    format: STUDY_BACKUP_FORMAT,
-    version: STUDY_BACKUP_VERSION,
-    dbVersion: STUDY_DB_VERSION,
-    exportedAt: Date.now(),
-    data: {
-      reviewItems,
-      reviewStates,
-      reviewEvents,
-      progress,
-      settings,
-      dailyStudyPlans,
-    },
-  };
+    return {
+      format: STUDY_BACKUP_FORMAT,
+      version: STUDY_BACKUP_VERSION,
+      dbVersion: STUDY_DB_VERSION,
+      exportedAt: Date.now(),
+      data: {
+        reviewItems,
+        reviewStates,
+        reviewEvents,
+        progress,
+        settings,
+        dailyStudyPlans,
+        studyCalendar,
+      },
+    };
+  });
 }
 
 export function parseStudyBackup(value: unknown): StudyBackup {
@@ -276,6 +296,9 @@ export function parseStudyBackup(value: unknown): StudyBackup {
   validateSettings(value.data.settings);
   validateDailyStudyPlans(value.data.dailyStudyPlans);
 
+  if (value.dbVersion >= 3 || value.data.studyCalendar !== undefined) {
+    assertArray(value.data.studyCalendar, "studyCalendar");
+  }
   const data = value.data as StudyBackupData;
   validateStudyBackupIntegrity(data);
 
@@ -305,6 +328,7 @@ export async function restoreStudyBackup(
   backup: StudyBackup,
   db: LanguageStudyDb = getLanguageStudyDb()
 ): Promise<void> {
+  backup = parseStudyBackup(backup);
   await db.transaction(
     "rw",
     [
@@ -314,6 +338,7 @@ export async function restoreStudyBackup(
       db.progress,
       db.settings,
       db.dailyStudyPlans,
+      db.studyCalendar,
     ],
     async () => {
       await Promise.all([
@@ -323,8 +348,17 @@ export async function restoreStudyBackup(
         db.progress.clear(),
         db.settings.clear(),
         db.dailyStudyPlans.clear(),
+        db.studyCalendar.clear(),
       ]);
 
+      if (backup.data.studyCalendar?.length) {
+        await db.studyCalendar.bulkPut(backup.data.studyCalendar);
+      } else {
+        const latest = backup.data.reviewEvents.reduce<number | undefined>(
+          (at, event) => Math.max(at ?? event.reviewedAt, event.reviewedAt), undefined);
+        await db.studyCalendar.put({ id: "study", day: localDay(latest ?? Date.now()),
+          active: latest !== undefined, pausedDays: 0 });
+      }
       if (backup.data.reviewItems.length) await db.reviewItems.bulkPut(backup.data.reviewItems);
       if (backup.data.reviewStates.length) await db.reviewStates.bulkPut(backup.data.reviewStates);
       if (backup.data.reviewEvents.length) await db.reviewEvents.bulkPut(backup.data.reviewEvents);

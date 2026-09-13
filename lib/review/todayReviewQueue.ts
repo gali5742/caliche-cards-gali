@@ -1,3 +1,4 @@
+import { effectiveReviewDue } from "../study/studyCalendar";
 import { State } from "ts-fsrs";
 
 import type { ReviewItem, ReviewSkill } from "../../domain/review/types";
@@ -146,7 +147,8 @@ function isShortTermState(state: StoredReviewState): boolean {
 function isAvailableThisOpportunity(
   state: StoredReviewState,
   dayEnd: number,
-  opportunityStartedAt: number
+  opportunityStartedAt: number,
+  pausedDays: number
 ): boolean {
   if (wasReviewedDuringOpportunity(state, opportunityStartedAt)) {
     return false;
@@ -158,7 +160,7 @@ function isAvailableThisOpportunity(
   });
 
   if (card.state === State.Review) {
-    return state.due < dayEnd;
+    return effectiveReviewDue(state, pausedDays) < dayEnd;
   }
 
   return card.state === State.Learning || card.state === State.Relearning;
@@ -181,6 +183,7 @@ function makeEntry(
 export async function buildTodayReviewQueue(
   input: BuildTodayReviewQueueInput
 ): Promise<TodayReviewQueue> {
+  const pausedDays = await input.reviewRepository.prepareStudyCalendar?.(input.now) ?? 0;
   const dailyNewVocabularyLimit = normalizeDailyNewLimit(
     input.dailyNewVocabularyLimit
   );
@@ -258,7 +261,7 @@ export async function buildTodayReviewQueue(
       continue;
     }
 
-    if (!isAvailableThisOpportunity(state, dayEnd, opportunityStartedAt)) {
+    if (!isAvailableThisOpportunity(state, dayEnd, opportunityStartedAt, pausedDays)) {
       continue;
     }
 
@@ -295,7 +298,7 @@ export async function buildTodayReviewQueue(
 
   dueEntries.sort(
     (a, b) =>
-      a.state.due - b.state.due ||
+      effectiveReviewDue(a.state, pausedDays) - effectiveReviewDue(b.state, pausedDays) ||
       (vocabularyOrder.get(a.item.vocabularyId) ?? Number.MAX_SAFE_INTEGER) -
         (vocabularyOrder.get(b.item.vocabularyId) ?? Number.MAX_SAFE_INTEGER) ||
       skillOrder(a.item.skill) - skillOrder(b.item.skill)
