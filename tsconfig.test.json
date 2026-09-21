@@ -8,10 +8,20 @@
     "target": "ES2022",
     "rootDir": ".",
     "outDir": ".test-dist",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "declaration": false,
-    "sourceMap": false
+    "sourceMap": false,
+    "jsx": "react-jsx"
   },
-  "include": ["tests/**/*.ts"],
-  "exclude": ["node_modules", ".next", ".test-dist"]
+  "include": [
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    ".test-dist"
+  ]
 }
